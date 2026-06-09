@@ -44,6 +44,116 @@ describe("LlmClient", () => {
   });
 
   describe("Live Mode with API Key", () => {
+    describe("OpenAI / OpenRouter Compatible Provider Mode", () => {
+      let originalProvider: string | undefined;
+      let originalModel: string | undefined;
+      let originalApiBaseUrl: string | undefined;
+
+      beforeEach(() => {
+        originalProvider = process.env.LLM_PROVIDER;
+        originalModel = process.env.LLM_MODEL;
+        originalApiBaseUrl = process.env.LLM_API_BASE_URL;
+      });
+
+      afterEach(() => {
+        if (originalProvider === undefined) {
+          delete process.env.LLM_PROVIDER;
+        } else {
+          process.env.LLM_PROVIDER = originalProvider;
+        }
+        if (originalModel === undefined) {
+          delete process.env.LLM_MODEL;
+        } else {
+          process.env.LLM_MODEL = originalModel;
+        }
+        if (originalApiBaseUrl === undefined) {
+          delete process.env.LLM_API_BASE_URL;
+        } else {
+          process.env.LLM_API_BASE_URL = originalApiBaseUrl;
+        }
+      });
+
+      it("should call OpenAI compatible API and parse JSON successfully when provider is openai", async () => {
+        process.env.LLM_PROVIDER = "openai";
+        process.env.LLM_MODEL = "gpt-4o-mini";
+        
+        const client = new LlmClient("openai-key", false);
+        const mockLlmOutput = {
+          playlistTitle: "OpenAI Mix",
+          playlistDescription: "Curated by OpenAI model",
+          recommendedTracks: [
+            { title: "OpenAI Track 1", artistName: "OpenAI Artist 1" }
+          ]
+        };
+
+        const mockResponse = {
+          ok: true,
+          json: async () => ({
+            choices: [{
+              message: {
+                content: JSON.stringify(mockLlmOutput)
+              }
+            }]
+          })
+        };
+
+        const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(mockResponse as unknown as Response);
+
+        const result = await client.curate("OpenAI test prompt", mockRecentTracks);
+
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        
+        const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+        expect(calledUrl).toBe("https://api.openai.com/v1/chat/completions");
+        expect(calledInit.headers).toEqual(
+          expect.objectContaining({
+            Authorization: "Bearer openai-key",
+            "Content-Type": "application/json",
+          })
+        );
+        expect(JSON.parse(calledInit.body as string).model).toBe("gpt-4o-mini");
+
+        expect(result.title).toBe("OpenAI Mix");
+        expect(result.tracks).toHaveLength(1);
+        expect(result.tracks[0].title).toBe("OpenAI Track 1");
+      });
+
+      it("should call OpenRouter API when provider is openrouter", async () => {
+        process.env.LLM_PROVIDER = "openrouter";
+        delete process.env.LLM_MODEL; // let it use default
+
+        const client = new LlmClient("openrouter-key", false);
+        const mockLlmOutput = {
+          playlistTitle: "OpenRouter Mix",
+          playlistDescription: "Curated by OpenRouter",
+          recommendedTracks: []
+        };
+
+        const mockResponse = {
+          ok: true,
+          json: async () => ({
+            choices: [{
+              message: {
+                content: JSON.stringify(mockLlmOutput)
+              }
+            }]
+          })
+        };
+
+        const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(mockResponse as unknown as Response);
+
+        const result = await client.curate("OpenRouter prompt", mockRecentTracks);
+
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        
+        const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+        expect(calledUrl).toBe("https://openrouter.ai/api/v1/chat/completions");
+        expect(JSON.parse(calledInit.body as string).model).toBe("google/gemini-2.5-flash");
+
+        expect(result.title).toBe("OpenRouter Mix");
+      });
+    });
+
     it("should call real API and parse JSON response successfully", async () => {
       const client = new LlmClient("valid-api-key", false);
       const mockLlmOutput = {

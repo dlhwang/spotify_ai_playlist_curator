@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SpotifyService, SpotifyHttpError, RawSpotifyPlayHistory } from "./spotify-service";
 import { AuthService, CookieStore } from "./auth-service";
 
@@ -200,4 +200,255 @@ describe("SpotifyService", () => {
       expect(refreshSpy).not.toHaveBeenCalled();
     });
   });
+
+  describe("searchTracks", () => {
+    let originalClientId: string | undefined;
+    let originalClientSecret: string | undefined;
+    let originalMockSpotify: string | undefined;
+
+    beforeEach(() => {
+      originalClientId = process.env.SPOTIFY_CLIENT_ID;
+      originalClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+      originalMockSpotify = process.env.MOCK_SPOTIFY;
+    });
+
+    afterEach(() => {
+      process.env.SPOTIFY_CLIENT_ID = originalClientId;
+      process.env.SPOTIFY_CLIENT_SECRET = originalClientSecret;
+      process.env.MOCK_SPOTIFY = originalMockSpotify;
+    });
+
+    it("should fallback to Mock Search when credentials are missing", async () => {
+      delete process.env.SPOTIFY_CLIENT_ID;
+      delete process.env.SPOTIFY_CLIENT_SECRET;
+
+      const curation = {
+        title: "Mock Playlist",
+        description: "Mock Description",
+        tracks: [
+          { title: "Song A", artistName: "Artist A" },
+          { title: "Song B", artistName: "Artist B" },
+        ],
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+      const result = await spotifyService.searchTracks(mockCookieStore, curation);
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(result.title).toBe("Mock Playlist");
+      expect(result.tracks).toHaveLength(2);
+      expect(result.tracks[0].title).toBe("Song A");
+      expect(result.tracks[0].uri).toContain("spotify:track:mock-");
+    });
+
+    it("should successfully search and map multiple tracks in parallel", async () => {
+      process.env.SPOTIFY_CLIENT_ID = "test-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "test-secret";
+      process.env.MOCK_SPOTIFY = "false";
+
+      const curation = {
+        title: "My Playlist",
+        description: "My Description",
+        tracks: [
+          { title: "Song A", artistName: "Artist A" },
+          { title: "Song B", artistName: "Artist B" },
+        ],
+      };
+
+      const mockSearchResponseA = {
+        ok: true,
+        json: async () => ({
+          tracks: {
+            items: [
+              { id: "id-a", uri: "spotify:track:id-a", name: "Song A", artists: [{ name: "Artist A" }] }
+            ]
+          }
+        })
+      };
+
+      const mockSearchResponseB = {
+        ok: true,
+        json: async () => ({
+          tracks: {
+            items: [
+              { id: "id-b", uri: "spotify:track:id-b", name: "Song B", artists: [{ name: "Artist B" }] }
+            ]
+          }
+        })
+      };
+
+      const fetchMock = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(mockSearchResponseA as unknown as Response)
+        .mockResolvedValueOnce(mockSearchResponseB as unknown as Response);
+
+      const result = await spotifyService.searchTracks(mockCookieStore, curation);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(result.tracks).toHaveLength(2);
+      expect(result.tracks[0].id).toBe("id-a");
+      expect(result.tracks[1].id).toBe("id-b");
+    });
+
+    it("should skip single track search failures and keep mapping others", async () => {
+      process.env.SPOTIFY_CLIENT_ID = "test-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "test-secret";
+      process.env.MOCK_SPOTIFY = "false";
+
+      const curation = {
+        title: "My Playlist",
+        description: "My Description",
+        tracks: [
+          { title: "Song A", artistName: "Artist A" },
+          { title: "Song Fail", artistName: "Artist Fail" },
+          { title: "Song B", artistName: "Artist B" },
+        ],
+      };
+
+      const mockSearchResponseA = {
+        ok: true,
+        json: async () => ({
+          tracks: {
+            items: [{ id: "id-a", uri: "spotify:track:id-a", name: "Song A", artists: [{ name: "Artist A" }] }]
+          }
+        })
+      };
+
+      const response500 = {
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+      };
+
+      const mockSearchResponseB = {
+        ok: true,
+        json: async () => ({
+          tracks: {
+            items: [{ id: "id-b", uri: "spotify:track:id-b", name: "Song B", artists: [{ name: "Artist B" }] }]
+          }
+        })
+      };
+
+      vi.spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(mockSearchResponseA as unknown as Response)
+        .mockResolvedValueOnce(response500 as unknown as Response)
+        .mockResolvedValueOnce(mockSearchResponseB as unknown as Response);
+
+      const result = await spotifyService.searchTracks(mockCookieStore, curation);
+
+      expect(result.tracks).toHaveLength(2);
+      expect(result.tracks[0].id).toBe("id-a");
+      expect(result.tracks[1].id).toBe("id-b");
+    });
+
+    it("should throw exception if final mapped tracks count is zero", async () => {
+      process.env.SPOTIFY_CLIENT_ID = "test-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "test-secret";
+      process.env.MOCK_SPOTIFY = "false";
+
+      const curation = {
+        title: "My Playlist",
+        description: "My Description",
+        tracks: [
+          { title: "Song Fail", artistName: "Artist Fail" },
+        ],
+      };
+
+      const response500 = {
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+      };
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(response500 as unknown as Response);
+
+      await expect(
+        spotifyService.searchTracks(mockCookieStore, curation)
+      ).rejects.toThrow("Curation Mapping Failure: No tracks could be mapped to Spotify URIs");
+    });
+
+    it("should retry once with refreshed token when search returns 401", async () => {
+      process.env.SPOTIFY_CLIENT_ID = "test-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "test-secret";
+      process.env.MOCK_SPOTIFY = "false";
+
+      const curation = {
+        title: "My Playlist",
+        description: "My Description",
+        tracks: [
+          { title: "Song A", artistName: "Artist A" },
+        ],
+      };
+
+      const response401 = {
+        ok: false,
+        status: 401,
+        statusText: "Unauthorized",
+      };
+
+      const mockSearchResponseSuccess = {
+        ok: true,
+        json: async () => ({
+          tracks: {
+            items: [{ id: "id-retry", uri: "spotify:track:id-retry", name: "Song Retry", artists: [{ name: "Artist Retry" }] }]
+          }
+        })
+      };
+
+      const fetchMock = vi.spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(response401 as unknown as Response)
+        .mockResolvedValueOnce(mockSearchResponseSuccess as unknown as Response);
+
+      const refreshSpy = vi.spyOn(authService, "refreshSession").mockResolvedValue({
+        accessToken: "new-access-token",
+        refreshToken: "old-refresh",
+        expiresAt: Date.now() + 3600 * 1000,
+      });
+
+      const result = await spotifyService.searchTracks(mockCookieStore, curation);
+
+      expect(refreshSpy).toHaveBeenCalledWith("old-refresh");
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(result.tracks).toHaveLength(1);
+      expect(result.tracks[0].id).toBe("id-retry");
+    });
+
+    it("should handle timeout abort signal as skip for individual track", async () => {
+      process.env.SPOTIFY_CLIENT_ID = "test-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "test-secret";
+      process.env.MOCK_SPOTIFY = "false";
+
+      const curation = {
+        title: "My Playlist",
+        description: "My Description",
+        tracks: [
+          { title: "Song Timeout", artistName: "Artist Timeout" },
+          { title: "Song B", artistName: "Artist B" },
+        ],
+      };
+
+      const abortError = new Error("The user aborted a request.");
+      abortError.name = "AbortError";
+
+      const mockSearchResponseSuccess = {
+        ok: true,
+        json: async () => ({
+          tracks: {
+            items: [{ id: "id-b", uri: "spotify:track:id-b", name: "Song B", artists: [{ name: "Artist B" }] }]
+          }
+        })
+      };
+
+      vi.spyOn(globalThis, "fetch")
+        .mockRejectedValueOnce(abortError)
+        .mockResolvedValueOnce(mockSearchResponseSuccess as unknown as Response);
+
+      const result = await spotifyService.searchTracks(mockCookieStore, curation);
+
+      expect(result.tracks).toHaveLength(1);
+      expect(result.tracks[0].id).toBe("id-b");
+    });
+  });
 });
+

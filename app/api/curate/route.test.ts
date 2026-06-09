@@ -3,6 +3,7 @@ import { POST } from "./route";
 import { AuthService } from "@/server/services/auth-service";
 import { SpotifyService } from "@/server/services/spotify-service";
 import { LlmClient } from "@/server/services/llm-client";
+import { cookies } from "next/headers";
 
 // next/headers 모킹
 vi.mock("next/headers", () => {
@@ -21,6 +22,7 @@ import { Mock } from "vitest";
 describe("POST /api/curate Route Handler", () => {
   let mockGetSession: Mock;
   let mockGetRecentlyPlayedTracks: Mock;
+  let mockSearchTracks: Mock;
   let mockCurate: Mock;
 
   beforeEach(() => {
@@ -28,7 +30,10 @@ describe("POST /api/curate Route Handler", () => {
 
     mockGetSession = vi.fn();
     mockGetRecentlyPlayedTracks = vi.fn();
+    mockSearchTracks = vi.fn();
     mockCurate = vi.fn();
+
+    vi.mocked(cookies).mockResolvedValue({} as any);
 
     // AuthService 인스턴스 모킹
     vi.mocked(AuthService).mockImplementation(() => {
@@ -41,6 +46,7 @@ describe("POST /api/curate Route Handler", () => {
     vi.mocked(SpotifyService).mockImplementation(() => {
       return {
         getRecentlyPlayedTracks: mockGetRecentlyPlayedTracks,
+        searchTracks: mockSearchTracks,
       } as unknown as SpotifyService;
     });
 
@@ -88,6 +94,15 @@ describe("POST /api/curate Route Handler", () => {
     };
     mockCurate.mockResolvedValue(mockPlaylist);
 
+    const mockMappedPlaylist = {
+      title: "Happy Playlist",
+      description: "A very happy playlist for you",
+      tracks: [
+        { id: "mapped-1", uri: "spotify:track:mapped-1", title: "Happy Song 1", artistName: "Artist A" }
+      ]
+    };
+    mockSearchTracks.mockResolvedValue(mockMappedPlaylist);
+
     const req = new Request("http://localhost/api/curate", {
       method: "POST",
       body: JSON.stringify({ userPrompt: "happy vibes" }),
@@ -100,9 +115,11 @@ describe("POST /api/curate Route Handler", () => {
     expect(data.title).toBe("Happy Playlist");
     expect(data.tracks).toHaveLength(1);
     expect(data.tracks[0].title).toBe("Happy Song 1");
+    expect(data.tracks[0].uri).toBe("spotify:track:mapped-1");
 
     expect(mockGetRecentlyPlayedTracks).toHaveBeenCalledTimes(1);
     expect(mockCurate).toHaveBeenCalledWith("happy vibes", mockTracks);
+    expect(mockSearchTracks).toHaveBeenCalledWith(expect.anything(), mockPlaylist);
   });
 
   it("should proceed curation with empty tracks list if Spotify recently played fetch fails", async () => {
@@ -121,6 +138,13 @@ describe("POST /api/curate Route Handler", () => {
     };
     mockCurate.mockResolvedValue(mockPlaylist);
 
+    const mockMappedPlaylist = {
+      title: "Fallback Playlist",
+      description: "Default fallback suggestions",
+      tracks: []
+    };
+    mockSearchTracks.mockResolvedValue(mockMappedPlaylist);
+
     const req = new Request("http://localhost/api/curate", {
       method: "POST",
       body: JSON.stringify({ userPrompt: "moody lofi" }),
@@ -132,5 +156,6 @@ describe("POST /api/curate Route Handler", () => {
     const data = await res.json();
     expect(data.title).toBe("Fallback Playlist");
     expect(mockCurate).toHaveBeenCalledWith("moody lofi", []); // 빈 배열로 LLM Client 호출 확인
+    expect(mockSearchTracks).toHaveBeenCalledWith(expect.anything(), mockPlaylist);
   });
 });

@@ -45,7 +45,10 @@ export async function POST(request: Request) {
 
     const playlist = await llmClient.curate(userPrompt, recentTracks);
 
-    return NextResponse.json(playlist);
+    // 5. 추천 트랙들을 Spotify 고유 URI로 매핑 (Search API 연동)
+    const mappedPlaylist = await spotifyService.searchTracks(cookieStore, playlist);
+
+    return NextResponse.json(mappedPlaylist);
   } catch (error) {
     console.error("Curation handler failed unexpectedly:", error);
     return NextResponse.json(

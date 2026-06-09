@@ -76,16 +76,25 @@ Please recommend 10 to 15 matching tracks with their titles and artists.`;
   }
 
   /**
-   * Gemini API를 호출하고 10초 타임아웃 처리와 JSON 파싱을 수행합니다.
+   * 설정된 LLM Provider(환경 변수)에 따라 API를 호출하고 10초 타임아웃 처리와 JSON 파싱을 수행합니다.
+   * 지원 프로바이더: gemini (기본값), openai, openrouter (및 OpenAI 호환 API)
    */
   private async callLlmWithTimeoutAndParse(prompt: string, timeoutMs: number): Promise<CuratedPlaylist> {
+    const provider = process.env.LLM_PROVIDER || "gemini";
+    const model = process.env.LLM_MODEL || (provider === "gemini" ? "gemini-2.5-flash" : provider === "openai" ? "gpt-4o-mini" : "google/gemini-2.5-flash");
+    const defaultBaseUrl = provider === "openai" ? "https://api.openai.com/v1" : provider === "openrouter" ? "https://openrouter.ai/api/v1" : "";
+    const baseUrl = process.env.LLM_API_BASE_URL || defaultBaseUrl;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
-        {
+      let url = "";
+      let options: RequestInit = {};
+
+      if (provider === "gemini") {
+        url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+        options = {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -99,15 +108,43 @@ Please recommend 10 to 15 matching tracks with their titles and artists.`;
             }
           }),
           signal: controller.signal,
-        }
-      );
+        };
+      } else {
+        // OpenAI or OpenRouter (OpenAI 호환 규격)
+        url = `${baseUrl}/chat/completions`;
+        options = {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: "user", content: prompt }
+            ],
+            response_format: { type: "json_object" }
+          }),
+          signal: controller.signal,
+        };
+      }
+
+      const response = await fetch(url, options);
 
       if (!response.ok) {
         throw new Error(`LLM API HTTP Error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      let rawText = "";
+
+      if (provider === "gemini") {
+        rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      } else {
+        // OpenAI 포맷 응답 파싱
+        rawText = data.choices?.[0]?.message?.content;
+      }
+
       if (!rawText) {
         throw new SyntaxError("Empty content received from LLM API");
       }

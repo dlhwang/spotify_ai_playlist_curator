@@ -693,3 +693,243 @@ U-002 NFR 요구사항 계획과 확인 질문을 작성했다. 사용자가 모
 **Context**: CONSTRUCTION - U-005 Functional Design Completion
 
 ---
+
+## Configuration Change - SESSION_SECRET Fast Track Plan
+
+**Timestamp**: 2026-06-09T21:46:41+09:00
+**User Input**: "SESSION_SECRET"
+**AI Response**: "SESSION_SECRET 환경 변수가 비어있는 것을 확인하고 .env.local에 안전한 세션 비밀키를 무작위로 생성하여 설정하는 Fast Track 계획을 수립했습니다."
+**Context**: CONFIGURATION - SESSION_SECRET Setup (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**: `.env.local`의 `SESSION_SECRET` 키에 대해 무작위로 생성된 32바이트 16진수 문자열 값을 설정한다.
+2. **Task type**: 설정 변경 (Configuration Change)
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: 명확한 로컬 설정 변경으로 소스 코드나 외부 API 구조에 영향이 없다.
+5. **Required context files**: `.env.local`
+6. **Expected files to change**: `.env.local`
+7. **Files or directories that must not change**: `aidlc-rules/`, `src/`
+8. **Validation commands**: `npm test`, `npm run typecheck`
+9. **Risks or assumptions**: 로컬 테스트 환경을 위한 세션 키이므로 무작위 해시로 설정되어도 개발에 아무 문제가 없다.
+
+---
+
+## Configuration Change - SESSION_SECRET Fast Track Complete
+
+**Timestamp**: 2026-06-09T21:49:30+09:00
+**User Input**: "SESSION_SECRET"
+**AI Response**: "무작위로 안전하게 생성된 32바이트 16진수 문자열 값을 .env.local의 SESSION_SECRET에 주입 완료하였으며, 빌드 및 타입 검사, 35개 단위 테스트, 마크다운 린트까지 검증을 완료했습니다."
+**Context**: CONFIGURATION - SESSION_SECRET Setup (Fast Track)
+
+### 검증 결과
+
+- `npm run typecheck && npm test`: 성공 (35개 단위 테스트 통과)
+- `npx markdownlint-cli2 "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---
+
+## Configuration Change - SESSION_SECRET Setup Q&A
+
+**Timestamp**: 2026-06-09T21:50:07+09:00
+**User Input**: "뭔글자로 거기 채웠니"
+**AI Response**: "무작위로 안전하게 생성된 32바이트 16진수 값인 4212c86c98151ac5475617248beed9b96e54a4330096654bcae58fa4783fb066 을 채워 넣었습니다."
+**Context**: CONFIGURATION - SESSION_SECRET Setup (Q&A)
+
+---
+
+## NFR Requirements - U-005 Plan Started
+
+**Timestamp**: 2026-06-09T21:55:16+09:00
+**User Input**: "다음거 해봐"
+**AI Response**: "U-005 Spotify Search 단위의 NFR 요구사항 수립을 위해 계획서(u-005-spotify-search-nfr-requirements-plan.md)를 생성하고 질문 답변 및 승인을 요청했습니다."
+**Context**: CONSTRUCTION - U-005 NFR Requirements Planning
+
+---
+
+## NFR Requirements - U-005 Plan & Approval Complete
+
+**Timestamp**: 2026-06-09T21:55:42+09:00
+**User Input**: "전부 승인"
+**AI Response**: "U-005 NFR Requirements 계획 질문에 대해 추천안(Option A)대로 전부 승인 및 접수 처리하였으며, u-005-spotify-search-nfr-requirements-plan.md 계획서 체크박스를 모두 완료 표시했습니다. 이어서 u-005-spotify-search 하위에 nfr-requirements.md와 tech-stack-decisions.md 산출물을 생성하고 완료를 기록했습니다."
+**Context**: CONSTRUCTION - U-005 NFR Requirements Completion
+
+---
+
+## Code Generation - U-005 Plan Started
+
+**Timestamp**: 2026-06-09T21:56:45+09:00
+**User Input**: "전부 승인"
+**AI Response**: "U-005 Spotify Search 및 트랙 매핑 코드 생성을 위한 계획서(u-005-spotify-search-code-generation-plan.md)를 생성하고 검토 및 승인을 대기하기 시작했습니다."
+**Context**: CONSTRUCTION - U-005 Code Generation Planning
+
+---
+
+## Code Generation - U-005 Complete
+
+**Timestamp**: 2026-06-09T22:37:12+09:00
+**User Input**: "전부 승인"
+**AI Response**: "U-005 코드 생성 계획서 질문에 대해 승인(Option A) 처리하였으며, 계획서 체크박스를 모두 완료 표시했습니다. 이어서 src/domain/search.ts, src/server/services/spotify-service.ts/test, app/api/curate/route.ts/test 파일을 수정 및 추가하여 구현 완료하였고, 41개 단위 테스트 및 마크다운 린트 검증에 성공했습니다."
+**Context**: CONSTRUCTION - U-005 Code Generation Completion
+
+---
+
+## Build and Test Stage
+
+**Timestamp**: 2026-06-09T22:39:20+09:00
+**Build Status**: Success
+**Test Status**: Pass
+**Requirement Verification Status**: Complete
+**Requirement Verification Evidence**:
+
+- U-001 (Project Foundation) -> HomePage & env validation unit tests -> Pass
+- U-002 (Spotify Auth Session) -> HMAC & session cookies mock tests -> Pass
+- U-003 (Recent Tracks) -> Timeout & 401 refresh mock tests -> Pass
+- U-004 (Curation LLM) -> JSON parse retry & 10s timeout tests -> Pass
+- U-005 (Spotify Search) -> Parallel search & individual timeout tests -> Pass
+
+**Files Generated**:
+
+- build-instructions.md
+- unit-test-instructions.md
+- integration-test-instructions.md
+- performance-test-instructions.md
+- build-and-test-summary.md
+
+---
+
+## Operations Stage
+
+**Timestamp**: 2026-06-09T22:41:30+09:00
+**User Input**: "Approve & Continue"
+**AI Response**: "Build and Test 단계 승인에 따라 Operations 단계를 완료 처리하였습니다. 현재 MVP 빌드 사양상 클라우드 배포 로직이 배제되어 있어 플레이스홀더 단계로서 최종 산출물을 확정 및 검증 완료했습니다."
+**Context**: OPERATIONS - Operations Completion
+
+---
+
+## Documentation - README.md Generation Fast Track Plan
+
+**Timestamp**: 2026-06-09T23:05:39+09:00
+**User Input**: "지금까지 ai-dlc에서 생성한 spec 문서를 이용하여 README.md 파일을 생성하시오"
+**AI Response**: "AI-DLC 산출물 문서를 분석하여 프로젝트 개요와 실행 가이드가 포함된 README.md를 생성하는 Fast Track 계획을 수립했습니다."
+**Context**: DOCUMENTATION - README.md Generation (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**: AI-DLC 산출물 스펙 문서들을 바탕으로 프로젝트 소개, 기술 스택, 설치 및 검증 명령어 등이 일목요연하게 포함된 `README.md`를 프로젝트 루트에 새로 작성한다.
+2. **Task type**: 문서 생성 (Documentation Creation)
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: 소스 코드나 외부 API 변경이 없는 순수 문서 생성 작업으로 영향 범위가 제한적이다.
+5. **Required context files**: Inception/Construction 산출물 문서들
+6. **Expected files to change**: `README.md`
+7. **Files or directories that must not change**: `aidlc-rules/`, `src/`, `app/`
+8. **Validation commands**: `npx markdownlint-cli2 "README.md"`
+9. **Risks or assumptions**: 스펙 문서 요약을 명확히 하여 최종 사용자나 개발자가 기동법을 쉽게 이해할 수 있게 한다.
+
+---
+
+## Documentation - README.md Generation Complete
+
+**Timestamp**: 2026-06-09T23:06:30+09:00
+**User Input**: "지금까지 ai-dlc에서 생성한 spec 문서를 이용하여 README.md 파일을 생성하시오"
+**AI Response**: "AI-DLC 요구사항 분석서 및 설계 통합 문서를 기반으로 프로젝트 구조와 실행 명령을 정리한 README.md 문서를 루트 디렉토리에 성공적으로 생성하고 마크다운 린트 검증까지 마쳤습니다."
+**Context**: DOCUMENTATION - README.md Generation (Fast Track)
+
+### 검증 결과
+
+- `npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---
+
+## Refactoring - LlmClient Provider Support Standard Track Plan
+
+**Timestamp**: 2026-06-09T23:08:42+09:00
+**User Input**: "callLlmWithTimeoutAndParse 에서 llm provider 가 gemini자내 바로 하드코팅으로 그르지말고 env에 입력하여서 그대로 구현할 수 있게 하자 openrouter도있고 gpt도 있고 다 쓸 수 있게 또는 노드에서 langchain 없니?"
+**AI Response**: "LlmClient 내부에 하드코팅된 Gemini API 경로를 환경 변수(LLM_PROVIDER, LLM_MODEL, LLM_API_BASE_URL)에 연동해 OpenAI 및 OpenRouter 등 다양한 모델 및 프로바이더를 사용할 수 있도록 리팩토링하는 Standard Track 계획을 수립했습니다."
+**Context**: REFACTORING - LlmClient Provider Support (Standard Track)
+
+### Standard Track 계획
+
+1. **Requirement summary**: `LlmClient` 내부에 하드코팅된 Gemini API 연동 구조를 환경 변수(`LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_BASE_URL`) 연동 구조로 전환하여 OpenAI 및 OpenRouter 호환 API도 플러그형태로 지원 가능하게 리팩토링한다.
+2. **Task type**: 리팩토링 및 환경 설정 추가 (Refactoring & Config Addition)
+3. **Selected AI-DLC execution mode**: Standard Track
+4. **Reason for selected mode**: LlmClient 및 LlmClient 테스트 코드 두 개 계층에 걸친 영향이 있으며, 다양한 API 모킹 흐름에 대한 엄격한 검증 보완이 필요하다.
+5. **Required context files**:
+   - `src/server/services/llm-client.ts`
+   - `src/server/services/llm-client.test.ts`
+6. **Expected files to change**:
+   - `src/server/services/llm-client.ts`
+   - `src/server/services/llm-client.test.ts`
+   - `.env.example`
+   - `.env.local`
+7. **Files or directories that must not change**: `aidlc-rules/`, `src/server/services/auth-service.ts`
+8. **Validation commands**: `npm test`, `npm run typecheck`
+9. **Risks or assumptions**: 기존 Gemini 기반 Live Mode 테스트들이 새로운 프로바이더 분기 하에서도 변함없이 정상 작동함을 보장해야 한다.
+
+---
+
+## Refactoring - LlmClient Provider Support Complete
+
+**Timestamp**: 2026-06-09T23:15:00+09:00
+**User Input**: "callLlmWithTimeoutAndParse 에서 llm provider 가 gemini자내 바로 하드코팅으로 그르지말고 env에 입력하여서 그대로 구현할 수 있게 하자 openrouter도있고 gpt도 있고 다 쓸 수 있게 또는 노드에서 langchain 없니?"
+**AI Response**: "LlmClient의 환경 변수(LLM_PROVIDER 등) 복원 로직 중 undefined 대입 오염 이슈를 수정하고, vitest 테스트 스위트 내 43개 테스트를 모두 정상 복구 완료했습니다."
+**Context**: REFACTORING - LlmClient Provider Support (Standard Track Completion)
+
+### 검증 결과
+
+- `npm run typecheck && npm test`: 성공 (43개 단위 테스트 통과)
+- `npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---
+
+## Configuration Change - SPOTIFY_REDIRECT_URI Update (Fast Track)
+
+**Timestamp**: 2026-06-09T23:26:00+09:00
+**User Input**: "`http://localhost:3000/api/spotify/auth/callback` 입력못하게 막아놨어 그래서 `http://127.0.0.1:3000/api/spotify/auth/callback` 이렇게 입력하래서 했어"
+**AI Response**: "Spotify Developer Dashboard의 정책 변경(또는 개별 앱 정책)으로 localhost 등록이 불가능함에 따라, 로컬 환경 설정을 127.0.0.1 기반의 리다이렉트 URI로 신속하게 변경하고 검증을 완료했습니다."
+**Context**: CONFIGURATION - SPOTIFY_REDIRECT_URI Update (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**: `.env.local`의 `SPOTIFY_REDIRECT_URI`를 `http://127.0.0.1:3000/api/spotify/auth/callback`으로 변경한다.
+2. **Task type**: 설정 변경 (Configuration Change)
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: 명확한 로컬 설정의 리다이렉트 도메인 변경으로 로직이나 구조에 복잡한 영향을 끼치지 않는다.
+5. **Required context files**: `.env.local`
+6. **Expected files to change**: `.env.local`
+7. **Files or directories that must not change**: `src/`
+8. **Validation commands**: `npm test`
+9. **Risks or assumptions**: 로컬 테스트 환경을 127.0.0.1 기준으로 구동하므로, 브라우저 접속 시에도 localhost 대신 127.0.0.1을 주소창에 사용해야 정상적으로 로그인 세션이 생성된다.
+
+### 검증 결과
+
+- `npm run typecheck && npm test`: 성공 (43개 단위 테스트 통과)
+- `npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---
+
+## Configuration Change - Route Handler Path Alignment for auth/callback (Fast Track)
+
+**Timestamp**: 2026-06-09T23:30:00+09:00
+**User Input**: "`http://127.0.0.1:3000/api/spotify/auth/callback?code=...` 이거인데 404 페이지 떴어"
+**AI Response**: "애플리케이션의 API 라우트 경로(/api/spotify/callback)와 실제 사용자가 등록한 리다이렉트 URI(/api/spotify/auth/callback)의 불일치를 해결하기 위해, Route Handler 디렉토리 경로를 auth/callback 하위로 이동시켰습니다."
+**Context**: CONFIGURATION - Route Handler Path Alignment (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**: 기존 `app/api/spotify/callback` 디렉토리를 `app/api/spotify/auth/callback`으로 이동하여 404 라우팅 에러를 해결한다.
+2. **Task type**: 파일 구조 변경 (File Structure Relocation)
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: Next.js의 파일 시스템 기반 라우팅 경로 정렬 작업으로, 소스 코드 로직 자체의 수정 없이 경로 불일치만 해결하는 단순 변경이다.
+5. **Required context files**: 없음 (파일 이동)
+6. **Expected files to change**: `app/api/spotify/callback/route.ts` -> `app/api/spotify/auth/callback/route.ts`
+7. **Files or directories that must not change**: `src/`
+8. **Validation commands**: `npm test`
+9. **Risks or assumptions**: 로컬 테스트에 영향이 없는지 43개 테스트를 재가동하여 검증한다.
+
+### 검증 결과
+
+- `npm run typecheck && npm test`: 성공 (43개 단위 테스트 통과)
+- `npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---

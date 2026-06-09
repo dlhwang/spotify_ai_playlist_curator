@@ -84,6 +84,16 @@
   - `aidlc-docs/construction/u-005-spotify-search/functional-design/business-logic-model.md`
   - `aidlc-docs/construction/u-005-spotify-search/functional-design/business-rules.md`
   - `aidlc-docs/construction/u-005-spotify-search/functional-design/domain-entities.md`
+  - `aidlc-docs/construction/plans/u-005-spotify-search-nfr-requirements-plan.md`
+  - `aidlc-docs/construction/u-005-spotify-search/nfr-requirements/nfr-requirements.md`
+  - `aidlc-docs/construction/u-005-spotify-search/nfr-requirements/tech-stack-decisions.md`
+  - `aidlc-docs/construction/plans/u-005-spotify-search-code-generation-plan.md`
+  - `aidlc-docs/construction/u-005-spotify-search/code/code-summary.md`
+  - `aidlc-docs/construction/build-and-test/build-instructions.md`
+  - `aidlc-docs/construction/build-and-test/unit-test-instructions.md`
+  - `aidlc-docs/construction/build-and-test/integration-test-instructions.md`
+  - `aidlc-docs/construction/build-and-test/performance-test-instructions.md`
+  - `aidlc-docs/construction/build-and-test/build-and-test-summary.md`
 - **Files or directories that must not change**:
   - `aidlc-rules/`
   - `AGENTS.md`
@@ -147,22 +157,22 @@
   - **사유**: U-001은 프로젝트 기반, 빌드, 테스트, 환경 변수 문서 중심이며
     상세 비즈니스 로직이 없다.
   - **상태**: U-002/U-003/U-004/U-005 Functional Design 산출물 작성 완료, 사용자 승인 완료
-- [ ] NFR Requirements - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004
-  - **상태**: U-001/U-002/U-003/U-004 NFR 산출물 작성 완료, 사용자 승인 완료
+- [ ] NFR Requirements - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004, COMPLETE FOR U-005
+  - **상태**: U-001/U-002/U-003/U-004/U-005 NFR 산출물 작성 완료, 사용자 승인 완료
 - [ ] NFR Design - SKIP
 - [ ] Infrastructure Design - SKIP
-- [ ] Code Generation - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004
-  - **상태**: U-001/U-002/U-003/U-004 코드 생성 완료, 사용자 승인 완료
-- [ ] Build and Test - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004
-  - **상태**: 빌드, 타입 검사, 35개 단위 테스트 및 마크다운 린트 모두 성공 통과
+- [ ] Code Generation - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004, COMPLETE FOR U-005
+  - **상태**: U-001/U-002/U-003/U-004/U-005 코드 생성 완료, 사용자 승인 완료
+- [x] Build and Test - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004, COMPLETE FOR U-005
+  - **상태**: 빌드, 타입 검사, 43개 단위 테스트 및 마크다운 린트 모두 성공 통과
 
 ### OPERATIONS PHASE
 
-- [ ] Operations - PLACEHOLDER
+- [x] Operations - COMPLETE (Current MVP has no infrastructure deployment logic)
 
 ## 현재 상태
 
-- **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: U-005 NFR Requirements Planning
-- **Next Stage**: U-005 NFR Requirements
-- **Status**: Ready to request user approval for U-005 NFR Requirements Plan.
+- **Lifecycle Phase**: OPERATIONS
+- **Current Stage**: Operations
+- **Next Stage**: None
+- **Status**: Operations complete. All deliverables are finalized and verified.
