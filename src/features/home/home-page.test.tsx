@@ -9,7 +9,7 @@ describe("HomePage", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /지금 분위기에 맞는 Spotify playlist를 바로 만듭니다/
+        name: /분위기 맞춤형 AI 플레이리스트/
       })
     ).toBeInTheDocument();
     expect(screen.getByTestId("home-connect-spotify-button")).toBeInTheDocument();

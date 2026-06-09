@@ -308,5 +308,135 @@ export class SpotifyService {
       clearTimeout(timeoutId);
     }
   }
+
+  /**
+   * Retrieves the current user's profile to get their user ID.
+   */
+  async getCurrentUserId(cookieStore: CookieStore): Promise<string> {
+    const hasCredentials = !!process.env.SPOTIFY_CLIENT_ID && !!process.env.SPOTIFY_CLIENT_SECRET;
+    const isMockMode = !hasCredentials || process.env.MOCK_SPOTIFY === "true";
+
+    if (isMockMode) {
+      return "mock-user-id";
+    }
+
+    const session = this.authService.getSession(cookieStore);
+    if (!session) {
+      throw new Error("No active Spotify session found");
+    }
+
+    const fetchProfile = async (token: string) => {
+      const response = await fetch("https://api.spotify.com/v1/me", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        throw new SpotifyHttpError(`Spotify API error: ${response.statusText}`, response.status);
+      }
+      const data = await response.json();
+      return data.id as string;
+    };
+
+    try {
+      return await fetchProfile(session.accessToken);
+    } catch (error) {
+      const isHttpError = error instanceof SpotifyHttpError;
+      if (isHttpError && error.status === 401 && session.refreshToken) {
+        const updatedSession = await this.authService.refreshSession(session.refreshToken);
+        this.authService.setSession(cookieStore, updatedSession);
+        return await fetchProfile(updatedSession.accessToken);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a new playlist for the user.
+   */
+  async createPlaylist(cookieStore: CookieStore, userId: string, name: string, description: string): Promise<string> {
+    const hasCredentials = !!process.env.SPOTIFY_CLIENT_ID && !!process.env.SPOTIFY_CLIENT_SECRET;
+    const isMockMode = !hasCredentials || process.env.MOCK_SPOTIFY === "true";
+
+    if (isMockMode) {
+      return "mock-playlist-id";
+    }
+
+    const session = this.authService.getSession(cookieStore);
+    if (!session) {
+      throw new Error("No active Spotify session found");
+    }
+
+    const fetchCreate = async (token: string) => {
+      const response = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name, description, public: false })
+      });
+      if (!response.ok) {
+        throw new SpotifyHttpError(`Spotify API error: ${response.statusText}`, response.status);
+      }
+      const data = await response.json();
+      return data.id as string;
+    };
+
+    try {
+      return await fetchCreate(session.accessToken);
+    } catch (error) {
+      const isHttpError = error instanceof SpotifyHttpError;
+      if (isHttpError && error.status === 401 && session.refreshToken) {
+        const updatedSession = await this.authService.refreshSession(session.refreshToken);
+        this.authService.setSession(cookieStore, updatedSession);
+        return await fetchCreate(updatedSession.accessToken);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Adds tracks to a playlist.
+   */
+  async addTracksToPlaylist(cookieStore: CookieStore, playlistId: string, trackUris: string[]): Promise<void> {
+    if (trackUris.length === 0) return;
+    const hasCredentials = !!process.env.SPOTIFY_CLIENT_ID && !!process.env.SPOTIFY_CLIENT_SECRET;
+    const isMockMode = !hasCredentials || process.env.MOCK_SPOTIFY === "true";
+
+    if (isMockMode) {
+      console.log(`[Mock] Added ${trackUris.length} tracks to playlist ${playlistId}`);
+      return;
+    }
+
+    const session = this.authService.getSession(cookieStore);
+    if (!session) {
+      throw new Error("No active Spotify session found");
+    }
+
+    const fetchAdd = async (token: string) => {
+      const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ uris: trackUris })
+      });
+      if (!response.ok) {
+        throw new SpotifyHttpError(`Spotify API error: ${response.statusText}`, response.status);
+      }
+    };
+
+    try {
+      await fetchAdd(session.accessToken);
+    } catch (error) {
+      const isHttpError = error instanceof SpotifyHttpError;
+      if (isHttpError && error.status === 401 && session.refreshToken) {
+        const updatedSession = await this.authService.refreshSession(session.refreshToken);
+        this.authService.setSession(cookieStore, updatedSession);
+        await fetchAdd(updatedSession.accessToken);
+      }
+      throw error;
+    }
+  }
 }
 

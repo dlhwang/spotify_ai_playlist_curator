@@ -450,5 +450,91 @@ describe("SpotifyService", () => {
       expect(result.tracks[0].id).toBe("id-b");
     });
   });
+
+  describe("getCurrentUserId", () => {
+    it("should return mock-user-id when in mock mode", async () => {
+      process.env.MOCK_SPOTIFY = "true";
+      const userId = await spotifyService.getCurrentUserId(mockCookieStore);
+      expect(userId).toBe("mock-user-id");
+    });
+
+    it("should fetch user profile from Spotify when in live mode", async () => {
+      process.env.MOCK_SPOTIFY = "false";
+      process.env.SPOTIFY_CLIENT_ID = "client-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "client-secret";
+
+      const mockResponse = {
+        ok: true,
+        json: async () => ({ id: "real-user-123" }),
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(mockResponse as unknown as Response);
+
+      const userId = await spotifyService.getCurrentUserId(mockCookieStore);
+      expect(userId).toBe("real-user-123");
+      expect(fetchSpy).toHaveBeenCalledWith("https://api.spotify.com/v1/me", expect.any(Object));
+    });
+  });
+
+  describe("createPlaylist", () => {
+    it("should return mock-playlist-id when in mock mode", async () => {
+      process.env.MOCK_SPOTIFY = "true";
+      const playlistId = await spotifyService.createPlaylist(mockCookieStore, "user-id", "Name", "Desc");
+      expect(playlistId).toBe("mock-playlist-id");
+    });
+
+    it("should request Spotify to create playlist and return playlist ID in live mode", async () => {
+      process.env.MOCK_SPOTIFY = "false";
+      process.env.SPOTIFY_CLIENT_ID = "client-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "client-secret";
+
+      const mockResponse = {
+        ok: true,
+        json: async () => ({ id: "playlist-555" }),
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(mockResponse as unknown as Response);
+
+      const playlistId = await spotifyService.createPlaylist(mockCookieStore, "real-user-123", "My Playlist", "Description");
+      expect(playlistId).toBe("playlist-555");
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "https://api.spotify.com/v1/users/real-user-123/playlists",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ name: "My Playlist", description: "Description", public: false }),
+        })
+      );
+    });
+  });
+
+  describe("addTracksToPlaylist", () => {
+    it("should successfully return in mock mode", async () => {
+      process.env.MOCK_SPOTIFY = "true";
+      await expect(
+        spotifyService.addTracksToPlaylist(mockCookieStore, "playlist-id", ["spotify:track:1"])
+      ).resolves.not.toThrow();
+    });
+
+    it("should request Spotify to add tracks in live mode", async () => {
+      process.env.MOCK_SPOTIFY = "false";
+      process.env.SPOTIFY_CLIENT_ID = "client-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "client-secret";
+
+      const mockResponse = {
+        ok: true,
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(mockResponse as unknown as Response);
+
+      await spotifyService.addTracksToPlaylist(mockCookieStore, "playlist-555", ["spotify:track:1", "spotify:track:2"]);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "https://api.spotify.com/v1/playlists/playlist-555/tracks",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ uris: ["spotify:track:1", "spotify:track:2"] }),
+        })
+      );
+    });
+  });
 });
 

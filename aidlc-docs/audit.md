@@ -933,3 +933,47 @@ U-002 NFR 요구사항 계획과 확인 질문을 작성했다. 사용자가 모
 - `npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
 
 ---
+
+## Feature - Dynamic Curation Input & Spotify Playlist Save (Standard Track Plan)
+
+**Timestamp**: 2026-06-09T23:32:00+09:00
+**User Input**: "메인화면에 원하는 분위기 퇴근길에 들을 수 있는 차분하지만 리듬감 있는 playlist 라고 되어있고 입력하거나 액션버튼이 없는데?>"
+**AI Response**: "메인 화면에서 사용자가 원하는 분위기를 입력하여 큐레이션을 실행하고, 생성된 결과를 Spotify 플레이리스트로 최종 저장할 수 있는 통합 프론트엔드 UI/UX 흐름과 백엔드 API를 개발하는 Standard Track 계획을 수립했습니다."
+**Context**: FEATURE - Dynamic Curation & Save (Standard Track Plan)
+
+### Standard Track 계획
+
+1. **Requirement summary**:
+   - 로그인 완료 시 (`isAuthenticated === true`), 사용자가 텍스트 창에 입력할 수 있도록 활성화하고, "플레이리스트 생성" 버튼을 추가한다.
+   - 로딩 스피너 및 큐레이션 결과(제목, 설명, 트랙 목록)를 렌더링한다.
+   - "Spotify에 저장하기" 버튼을 제공하고 이를 처리하기 위해 `POST /api/spotify/playlists` API Route Handler를 추가하여 Spotify에 실제 저장 기능을 연동한다.
+2. **Task type**: 신규 기능 추가 및 UI/UX 강화 (Feature Addition & UI Enhancement)
+3. **Selected AI-DLC execution mode**: Standard Track
+4. **Reason for selected mode**: 프론트엔드 UI 컴포넌트(`home-page.tsx`)와 백엔드 서비스 계층(`spotify-service.ts`), 신규 API 라우트(`app/api/spotify/playlists/route.ts`)가 동시에 추가/변경되어 변경 범위가 다계층에 걸치고, 연동 로직의 통합 및 예외 처리(토큰 만료 리프레시 등) 테스트가 중요하기 때문이다.
+5. **Required context files**:
+   - `src/features/home/home-page.tsx`
+   - `src/server/services/spotify-service.ts`
+6. **Expected files to change**:
+   - `src/server/services/spotify-service.ts`
+   - `src/server/services/spotify-service.test.ts` (테스트 케이스 추가)
+   - `app/api/spotify/playlists/route.ts` [NEW]
+   - `src/features/home/home-page.tsx`
+7. **Files or directories that must not change**: `aidlc-rules/`
+8. **Validation commands**: `npm test`, `npm run typecheck`
+9. **Risks or assumptions**: Spotify API를 호출하여 저장하는 과정에서 Access Token이 만료되는 경우의 자동 갱신(Refresh) 정책이 매끄럽게 작동해야 한다.
+
+---
+
+## Feature - Dynamic Curation Input & Spotify Playlist Save Complete
+
+**Timestamp**: 2026-06-09T23:35:00+09:00
+**User Input**: "메인화면에 원하는 분위기 퇴근길에 들을 수 있는 차분하지만 리듬감 있는 playlist 라고 되어있고 입력하거나 액션버튼이 없는데?>"
+**AI Response**: "사용자가 로그인 후 분위기를 직접 입력하여 큐레이션을 요청하고, 이를 Spotify 플레이리스트에 실제 생성 및 추가하는 저장 기능 연동을 완료했습니다."
+**Context**: FEATURE - Dynamic Curation & Save (Standard Track Completion)
+
+### 검증 결과
+
+- `npm run typecheck && npm test`: 성공 (49개 단위 테스트 통과)
+- `npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---

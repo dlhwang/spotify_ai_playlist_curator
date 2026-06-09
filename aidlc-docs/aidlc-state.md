@@ -164,7 +164,7 @@
 - [ ] Code Generation - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004, COMPLETE FOR U-005
   - **상태**: U-001/U-002/U-003/U-004/U-005 코드 생성 완료, 사용자 승인 완료
 - [x] Build and Test - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004, COMPLETE FOR U-005
-  - **상태**: 빌드, 타입 검사, 43개 단위 테스트 및 마크다운 린트 모두 성공 통과
+  - **상태**: 빌드, 타입 검사, 49개 단위 테스트 및 마크다운 린트 모두 성공 통과
 
 ### OPERATIONS PHASE
 
