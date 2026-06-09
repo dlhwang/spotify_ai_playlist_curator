@@ -10,15 +10,15 @@ U-002의 OAuth, HttpOnly cookie session, token refresh contract에 필요한
 
 ## 실행 체크리스트
 
-- [ ] U-002 Functional Design의 token/session 규칙을 검토한다.
-- [ ] cookie 보안 속성과 session 무결성 요구사항을 정의한다.
-- [ ] OAuth callback reliability와 대표 오류 처리 요구사항을 정의한다.
-- [ ] token refresh 성능 및 실패 처리 요구사항을 정의한다.
-- [ ] 테스트 가능성과 mock Spotify token endpoint 요구사항을 정의한다.
-- [ ] 기술 스택 결정을 문서화한다.
-- [ ] `aidlc-docs/construction/u-002-spotify-auth-session/nfr-requirements/nfr-requirements.md`를 생성한다.
-- [ ] `aidlc-docs/construction/u-002-spotify-auth-session/nfr-requirements/tech-stack-decisions.md`를 생성한다.
-- [ ] 완료 후 이 계획의 체크박스를 즉시 갱신한다.
+- [x] U-002 Functional Design의 token/session 규칙을 검토한다.
+- [x] cookie 보안 속성과 session 무결성 요구사항을 정의한다.
+- [x] OAuth callback reliability와 대표 오류 처리 요구사항을 정의한다.
+- [x] token refresh 성능 및 실패 처리 요구사항을 정의한다.
+- [x] 테스트 가능성과 mock Spotify token endpoint 요구사항을 정의한다.
+- [x] 기술 스택 결정을 문서화한다.
+- [x] `aidlc-docs/construction/u-002-spotify-auth-session/nfr-requirements/nfr-requirements.md`를 생성한다.
+- [x] `aidlc-docs/construction/u-002-spotify-auth-session/nfr-requirements/tech-stack-decisions.md`를 생성한다.
+- [x] 완료 후 이 계획의 체크박스를 즉시 갱신한다.
 
 ## 기본 판단
 
@@ -44,7 +44,7 @@ C) 구현 단순화를 위해 base64 JSON만 사용
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]:A
 
 ## Question 2
 
@@ -58,7 +58,7 @@ C) MVP에서는 browser session cookie로 두고 만료는 token expiresAt 중�
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]:A
 
 ## Question 3
 
@@ -72,7 +72,7 @@ C) MVP에서는 logging 없이 오류 응답만 처리
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]:A
 
 ## 승인
 
@@ -85,4 +85,4 @@ B) 계획 수정을 요청
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]:A

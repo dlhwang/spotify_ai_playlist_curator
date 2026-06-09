@@ -1,10 +1,12 @@
 # AI-DLC 상태 추적
 
+<!-- markdownlint-disable MD013 -->
+
 ## 프로젝트 정보
 
 - **프로젝트 유형**: Greenfield
 - **시작 일시**: 2026-06-09T13:37:57+09:00
-- **현재 단계**: INCEPTION - Workflow Planning
+- **현재 단계**: CONSTRUCTION - U-005 NFR Requirements Planning
 
 ## 작업 계획
 
@@ -75,6 +77,13 @@
   - `aidlc-docs/construction/plans/u-002-spotify-auth-session-nfr-requirements-plan.md`
   - `aidlc-docs/inception/user-stories/personas.md`
   - `aidlc-docs/inception/user-stories/stories.md`
+  - `aidlc-docs/construction/plans/u-004-curation-llm-code-generation-plan.md`
+  - `aidlc-docs/construction/u-004-curation-llm/nfr-requirements/nfr-requirements.md`
+  - `aidlc-docs/construction/u-004-curation-llm/nfr-requirements/tech-stack-decisions.md`
+  - `aidlc-docs/construction/plans/u-005-spotify-search-functional-design-plan.md`
+  - `aidlc-docs/construction/u-005-spotify-search/functional-design/business-logic-model.md`
+  - `aidlc-docs/construction/u-005-spotify-search/functional-design/business-rules.md`
+  - `aidlc-docs/construction/u-005-spotify-search/functional-design/domain-entities.md`
 - **Files or directories that must not change**:
   - `aidlc-rules/`
   - `AGENTS.md`
@@ -134,18 +143,18 @@
 
 ### CONSTRUCTION PHASE
 
-- [ ] Functional Design - SKIP FOR U-001, COMPLETE FOR U-002
+- [ ] Functional Design - SKIP FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004, COMPLETE FOR U-005
   - **사유**: U-001은 프로젝트 기반, 빌드, 테스트, 환경 변수 문서 중심이며
     상세 비즈니스 로직이 없다.
-  - **상태**: U-002 Functional Design 산출물 작성 완료, 사용자 승인 완료
-- [ ] NFR Requirements - COMPLETE FOR U-001, IN PROGRESS FOR U-002
-  - **상태**: U-001 NFR 산출물 작성 완료, 사용자 승인 완료
-  - **상태**: U-002 NFR 계획 답변 및 승인 대기
+  - **상태**: U-002/U-003/U-004/U-005 Functional Design 산출물 작성 완료, 사용자 승인 완료
+- [ ] NFR Requirements - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004
+  - **상태**: U-001/U-002/U-003/U-004 NFR 산출물 작성 완료, 사용자 승인 완료
 - [ ] NFR Design - SKIP
 - [ ] Infrastructure Design - SKIP
-- [ ] Code Generation - COMPLETE FOR U-001
-  - **상태**: U-001 Project Foundation 코드 생성 완료, 사용자 승인 완료
-- [ ] Build and Test - EXECUTE
+- [ ] Code Generation - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004
+  - **상태**: U-001/U-002/U-003/U-004 코드 생성 완료, 사용자 승인 완료
+- [ ] Build and Test - COMPLETE FOR U-001, COMPLETE FOR U-002, COMPLETE FOR U-003, COMPLETE FOR U-004
+  - **상태**: 빌드, 타입 검사, 35개 단위 테스트 및 마크다운 린트 모두 성공 통과
 
 ### OPERATIONS PHASE
 
@@ -154,6 +163,6 @@
 ## 현재 상태
 
 - **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: U-002 NFR Requirements Planning
-- **Next Stage**: U-002 NFR Requirements Artifacts
-- **Status**: Paused by user. Resume from U-002 NFR Requirements plan answers.
+- **Current Stage**: U-005 NFR Requirements Planning
+- **Next Stage**: U-005 NFR Requirements
+- **Status**: Ready to request user approval for U-005 NFR Requirements Plan.

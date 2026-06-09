@@ -1,6 +1,6 @@
 # AI-DLC 감사 로그
 
-<!-- markdownlint-disable MD024 -->
+<!-- markdownlint-disable MD013 MD024 -->
 
 ## Workspace Detection - Initial Request
 
@@ -490,5 +490,206 @@ U-002 NFR 요구사항 계획과 확인 질문을 작성했다. 사용자가 모
 전제로 현재 작업을 중단하고, 다음 재개 지점을 U-002 NFR Requirements 계획
 답변으로 기록했다."
 **Context**: CONSTRUCTION - Pause
+
+---
+
+## NFR Requirements - U-002 Plan Approval Received
+
+**Timestamp**: 2026-06-09T16:55:00+09:00
+**User Input**: "Spotify token/credential이 아직 없다는 점도 상태에 남겼고, 내일 이어갈 위치는 U-002 NFR Requirements 계획 답변 단계입니다. 답변을 완료하였거덩? AGENTS.md 파일을 읽고 파악을 한 뒤 , 남은 단계를 진행하시오"
+**AI Response**: "U-002 NFR 계획의 모든 답변을 확인했다. HMAC 서명을 통한 세션 보호, 자동 토큰 갱신(Refresh), CSRF state 검증, 서버 상세 로그 기록, Vitest 모킹 레이어를 기반으로 NFR 요구사항 및 기술 결정을 작성하고 완료하였다."
+**Context**: CONSTRUCTION - U-002 NFR Requirements Planning Approval
+
+---
+
+## NFR Requirements - U-002 Approval Complete
+
+**Timestamp**: 2026-06-09T16:55:30+09:00
+**User Input**: "Spotify token/credential이 아직 없다는 점도 상태에 남겼고, 내일 이어갈 위치는 U-002 NFR Requirements 계획 답변 단계입니다. 답변을 완료하였거덩? AGENTS.md 파일을 읽고 파악을 한 뒤 , 남은 단계를 진행하시오"
+**AI Response**: "`aidlc-docs/construction/u-002-spotify-auth-session/nfr-requirements/` 아래에 NFR 요구사항과 기술 스택 결정 산출물을 생성하고 완료를 기록했다."
+**Context**: CONSTRUCTION - U-002 NFR Requirements Completion
+
+---
+
+## Code Generation - U-002 Plan Approval Received
+
+**Timestamp**: 2026-06-09T16:56:30+09:00
+**User Input**: "A) 승인하고 코드 생성을 진행"
+**AI Response**: "U-002 Code Generation 계획 승인을 기록하고 실제 코드 생성을 시작했다."
+**Context**: CONSTRUCTION - U-002 Code Generation Planning Approval
+
+---
+
+## Code Generation - U-002 Complete
+
+**Timestamp**: 2026-06-09T17:01:00+09:00
+**User Input**: "A) 승인하고 코드 생성을 진행"
+**AI Response**: "U-002 Spotify OAuth 로그인, 쿠키 기반 세션, 리프레시 토큰 자동 갱신 및 로그아웃/연결버튼 UI 연동을 완료하고, npm.cmd run build, npm.cmd run typecheck, npm.cmd test 및 마크다운 린트를 통해 100% 통과를 검증 완료했다."
+**Context**: CONSTRUCTION - U-002 Code Generation Verification
+
+---
+
+## Functional Design - U-003 Plan Started
+
+**Timestamp**: 2026-06-09T17:04:00+09:00
+**User Input**: "진행시켜"
+**AI Response**: "U-003 Functional Design 계획 작성을 완료하고 질문 답변 및 승인을 요청했다."
+**Context**: CONSTRUCTION - U-003 Functional Design Planning
+
+---
+
+## Functional Design - U-003 Plan Approval Received
+
+**Timestamp**: 2026-06-09T17:06:00+09:00
+**User Input**: "답변오나료"
+**AI Response**: "U-003 Functional Design 계획 질문의 모든 답변(코어 데이터 최소 추출, 신규 계정 빈 배열 전달을 통한 무중단 큐레이션 강행, API 에러 시 간소화 리다이렉트 및 상세 로깅)을 확인했다."
+**Context**: CONSTRUCTION - U-003 Functional Design Planning Approval
+
+---
+
+## Functional Design - U-003 Complete
+
+**Timestamp**: 2026-06-09T17:07:00+09:00
+**User Input**: "답변오나료"
+**AI Response**: "`aidlc-docs/construction/u-003-spotify-recent-tracks/functional-design/` 아래에 business-logic-model, business-rules, domain-entities 산출물을 생성하고 완료를 기록했다."
+**Context**: CONSTRUCTION - U-003 Functional Design Completion
+
+---
+
+## NFR Requirements - U-003 Plan Started
+
+**Timestamp**: 2026-06-09T17:08:00+09:00
+**User Input**: "답변오나료"
+**AI Response**: "U-003 NFR Requirements 계획 작성을 완료하고 질문 답변 및 승인을 요청했다."
+**Context**: CONSTRUCTION - U-003 NFR Requirements Planning
+
+---
+
+## NFR Requirements - U-003 Plan Approval Received
+
+**Timestamp**: 2026-06-09T17:09:30+09:00
+**User Input**: "답변완료"
+**AI Response**: "U-003 NFR 계획 질문의 모든 답변(5초 타임아웃 제한 적용, 429 등 오류 발생 시 인메모리 캐싱 배제 및 즉시 리다이렉션 예외 제약 유지)을 확인했다."
+**Context**: CONSTRUCTION - U-003 NFR Requirements Planning Approval
+
+---
+
+## NFR Requirements - U-003 Complete
+
+**Timestamp**: 2026-06-09T17:10:00+09:00
+**User Input**: "답변완료"
+**AI Response**: "`aidlc-docs/construction/u-003-spotify-recent-tracks/nfr-requirements/` 아래에 NFR 요구사항과 기술 결정 산출물을 생성하고 완료를 기록했다."
+**Context**: CONSTRUCTION - U-003 NFR Requirements Completion
+
+---
+
+## Code Generation - U-003 Plan Approval Received
+
+**Timestamp**: 2026-06-09T17:11:30+09:00
+**User Input**: "A"
+**AI Response**: "U-003 Code Generation 계획 승인을 기록하고 실제 최근 재생 곡 수집/정제 및 API 연동 코드 생성을 시작했다."
+**Context**: CONSTRUCTION - U-003 Code Generation Planning Approval
+
+---
+
+## Code Generation - U-003 Complete
+
+**Timestamp**: 2026-06-09T17:14:00+09:00
+**User Input**: "A"
+**AI Response**: "U-003 최근 재생 곡 수집 서비스 및 DTO 파싱, 타임아웃, 리프레시 갱신 연동 Route Handler 구현을 완료하고, npm.cmd run build, npm.cmd run typecheck, npm.cmd test 및 마크다운 린트를 통해 100% 검증을 완료했다."
+**Context**: CONSTRUCTION - U-003 Code Generation Verification
+
+---
+
+## Functional Design - U-004 Plan Started
+
+**Timestamp**: 2026-06-09T17:15:00+09:00
+**User Input**: "고고"
+**AI Response**: "U-004 Functional Design 계획 작성을 완료하고 질문 답변 및 승인을 요청했다."
+**Context**: CONSTRUCTION - U-004 Functional Design Planning
+
+---
+
+## Functional Design - U-004 Plan Approval Received
+
+**Timestamp**: 2026-06-09T17:17:00+09:00
+**User Input**: "답변"
+**AI Response**: "U-004 Functional Design 계획 질문의 모든 답변(하이브리드 Mock 지원 OpenAI/Gemini 직접 연동, 추천 트랙 텍스트 반환 및 후속 검색 위임, 파싱 오류 시 디폴트 폴백)을 확인했다."
+**Context**: CONSTRUCTION - U-004 Functional Design Planning Approval
+
+---
+
+## Functional Design - U-004 Complete
+
+**Timestamp**: 2026-06-09T17:18:00+09:00
+**User Input**: "답변"
+**AI Response**: "`aidlc-docs/construction/u-004-curation-llm/functional-design/` 아래에 business-logic-model, business-rules, domain-entities 산출물을 생성하고 완료를 기록했다."
+**Context**: CONSTRUCTION - U-004 Functional Design Completion
+
+---
+
+## NFR Requirements - U-004 Plan Started
+
+**Timestamp**: 2026-06-09T17:19:00+09:00
+**User Input**: "답변완료"
+**AI Response**: "U-004 NFR Requirements 계획 작성을 완료하고 질문 답변 및 승인을 요청했다."
+**Context**: CONSTRUCTION - U-004 NFR Requirements Planning
+
+---
+
+## NFR Requirements - U-004 Plan Approval Received
+
+**Timestamp**: 2026-06-09T17:21:00+09:00
+**User Input**: "답변완료"
+**AI Response**: "U-004 NFR 계획 질문의 모든 답변(10초 타임아웃 제한 적용, 정적 Mock 셋 구성 및 1회 재시도/최종 폴백 보장)을 확인하고 계획 승인을 접수했다."
+**Context**: CONSTRUCTION - U-004 NFR Requirements Planning Approval
+
+---
+
+## NFR Requirements - U-004 Complete
+
+**Timestamp**: 2026-06-09T17:21:30+09:00
+**User Input**: "답변완료"
+**AI Response**: "`aidlc-docs/construction/u-004-curation-llm/nfr-requirements/` 아래에 NFR 요구사항과 기술 결정 산출물을 생성하고 완료를 기록했다."
+**Context**: CONSTRUCTION - U-004 NFR Requirements Completion
+
+## Code Generation - U-004 Plan Approval Received
+
+**Timestamp**: 2026-06-09T17:23:00+09:00
+**User Input**: "답변완료"
+**AI Response**: "U-004 Code Generation 계획 승인을 기록하고 실제 Curation Engine / LLM Client 및 API Route Handler 코드 생성을 시작했다."
+**Context**: CONSTRUCTION - U-004 Code Generation Planning Approval
+
+---
+
+## Code Generation - U-004 Complete
+
+**Timestamp**: 2026-06-09T17:25:00+09:00
+**User Input**: "답변완료"
+**AI Response**: "U-004 Curation 도메인 모델, LLMClient 및 mock 분기, 10초 타임아웃, 1회 파싱 실패 재시도, 최종 폴백 플레이리스트 생성 로직 및 POST /api/curate 라우트 핸들러 구현을 성공적으로 완료했다. 타입 체킹, 35개 단위 테스트, 프로덕션 빌드, 마크다운 린트 품질 게이트를 모두 통과시켰다."
+**Context**: CONSTRUCTION - U-004 Code Generation Verification
+
+## Functional Design - U-005 Plan Started
+
+**Timestamp**: 2026-06-09T17:26:00+09:00
+**User Input**: "고고"
+**AI Response**: "U-005 Functional Design 계획 작성을 완료하고 질문 답변 및 승인을 요청했다."
+**Context**: CONSTRUCTION - U-005 Functional Design Planning
+
+## Functional Design - U-005 Plan Approval Received
+
+**Timestamp**: 2026-06-09T17:28:00+09:00
+**User Input**: "고고"
+**AI Response**: "U-005 Functional Design 계획 질문의 모든 답변(검색되지 않은 곡 제외 규칙 채택, track/artist 엄격한 구조화 필터 단일 적용 정책 채택)을 확인하고 계획 승인을 접수했다."
+**Context**: CONSTRUCTION - U-005 Functional Design Planning Approval
+
+---
+
+## Functional Design - U-005 Complete
+
+**Timestamp**: 2026-06-09T17:29:00+09:00
+**User Input**: "고고"
+**AI Response**: "`aidlc-docs/construction/u-005-spotify-search/functional-design/` 아래에 business-logic-model, business-rules, domain-entities 산출물을 생성하고 완료를 기록했다."
+**Context**: CONSTRUCTION - U-005 Functional Design Completion
 
 ---

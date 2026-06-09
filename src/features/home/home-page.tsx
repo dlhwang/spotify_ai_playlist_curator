@@ -1,6 +1,14 @@
 "use client";
 
-export function HomePage() {
+interface HomePageProps {
+  isAuthenticated?: boolean;
+}
+
+export function HomePage({ isAuthenticated = false }: HomePageProps) {
+  const handleLogout = () => {
+    window.location.href = "/api/spotify/logout";
+  };
+
   return (
     <main className="min-h-screen bg-mist text-ink">
       <section className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-10">
@@ -18,21 +26,46 @@ export function HomePage() {
                 전체 분위기 요약을 만들고 Spotify에 저장하는 MVP입니다.
               </p>
             </div>
+            
             <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                className="inline-flex h-12 items-center justify-center rounded-md bg-moss px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#334b3a] focus:outline-none focus:ring-2 focus:ring-moss focus:ring-offset-2"
-                data-testid="home-connect-spotify-button"
-                type="button"
-              >
-                Spotify로 시작
-              </button>
-              <button
-                className="inline-flex h-12 items-center justify-center rounded-md border border-neutral-300 bg-white px-5 text-sm font-semibold text-ink transition hover:border-moss hover:text-moss focus:outline-none focus:ring-2 focus:ring-moss focus:ring-offset-2"
-                data-testid="home-preview-flow-button"
-                type="button"
-              >
-                큐레이션 흐름 보기
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <div 
+                    className="inline-flex h-12 items-center justify-center rounded-md bg-moss px-5 text-sm font-semibold text-white shadow-sm"
+                    data-testid="home-status-connected"
+                  >
+                    Spotify 연결 완료
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="inline-flex h-12 items-center justify-center rounded-md border border-neutral-300 bg-white px-5 text-sm font-semibold text-ink transition hover:border-coral hover:text-coral focus:outline-none focus:ring-2 focus:ring-coral focus:ring-offset-2"
+                    data-testid="home-disconnect-spotify-button"
+                    type="button"
+                  >
+                    연결 해제 (로그아웃)
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      window.location.href = "/api/spotify/login";
+                    }}
+                    className="inline-flex h-12 items-center justify-center rounded-md bg-moss px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#334b3a] focus:outline-none focus:ring-2 focus:ring-moss focus:ring-offset-2"
+                    data-testid="home-connect-spotify-button"
+                    type="button"
+                  >
+                    Spotify로 시작
+                  </button>
+                  <button
+                    className="inline-flex h-12 items-center justify-center rounded-md border border-neutral-300 bg-white px-5 text-sm font-semibold text-ink transition hover:border-moss hover:text-moss focus:outline-none focus:ring-2 focus:ring-moss focus:ring-offset-2"
+                    data-testid="home-preview-flow-button"
+                    type="button"
+                  >
+                    큐레이션 흐름 보기
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
