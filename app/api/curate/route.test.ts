@@ -33,6 +33,7 @@ describe("POST /api/curate Route Handler", () => {
     mockSearchTracks = vi.fn();
     mockCurate = vi.fn();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(cookies).mockResolvedValue({} as any);
 
     // AuthService 인스턴스 모킹
