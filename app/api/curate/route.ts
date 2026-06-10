@@ -4,6 +4,7 @@ import { AuthService } from "@/server/services/auth-service";
 import { SpotifyService } from "@/server/services/spotify-service";
 import { LlmClient } from "@/server/services/llm-client";
 import { Track } from "@/domain/track";
+import { createFallbackPlaylist } from "@/domain/curation";
 
 export async function POST(request: Request) {
   try {
@@ -46,7 +47,13 @@ export async function POST(request: Request) {
     const playlist = await llmClient.curate(userPrompt, recentTracks);
 
     // 5. 추천 트랙들을 Spotify 고유 URI로 매핑 (Search API 연동)
-    const mappedPlaylist = await spotifyService.searchTracks(cookieStore, playlist);
+    let mappedPlaylist;
+    try {
+      mappedPlaylist = await spotifyService.searchTracks(cookieStore, playlist);
+    } catch (searchError) {
+      console.warn("Failed to map curated tracks to Spotify URIs, falling back to default playlist:", searchError);
+      mappedPlaylist = createFallbackPlaylist(recentTracks);
+    }
 
     return NextResponse.json(mappedPlaylist);
   } catch (error) {

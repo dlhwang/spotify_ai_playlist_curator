@@ -6,7 +6,7 @@
 
 - **프로젝트 유형**: Greenfield
 - **시작 일시**: 2026-06-09T13:37:57+09:00
-- **현재 단계**: CONSTRUCTION - U-005 NFR Requirements Planning
+- **현재 단계**: CONSTRUCTION - RAG Music Curation Implementation
 
 ## 작업 계획
 
@@ -182,10 +182,15 @@
   - **상태**: AI 호출 없이 스포티파이 실제 트랙 추가를 바로 테스트할 수 있도록 진짜 곡 데이터 3건을 UI에 연동 완료 및 빌드/테스트/마크다운 린트 검증 완료
 - [x] U-010: Console Logging Simplification - COMPLETE
   - **상태**: 백엔드 API 요청들의 비대한 로그를 간결한 1줄짜리 흐름 로그로 간소화 완료 및 빌드/테스트/마크다운 린트 검증 완료
+- [x] U-011: RAG-Based Music Curation Inception & Design - COMPLETE
+  - **상태**: 스포티파이 Recommendations/Audio Features API 연동 및 2단계 RAG 큐레이션 모델 기획/요구사항 정의/아키텍처 설계 완료
+- [ ] U-012: RAG-Based Music Curation Implementation - IN_PROGRESS
+  - **상태**: RAG 기반 음악 큐레이션(Recommendations/Audio Features API 및 2단계 LLM 파이프라인) 실제 기능 구현 및 단위/통합 테스트 진행 중
 
 ## 현재 상태
 
-- **Lifecycle Phase**: MAINTENANCE
-- **Current Stage**: Maintenance
-- **Next Stage**: None
-- **Status**: Console logging simplification is complete and verified.
+- **Lifecycle Phase**: CONSTRUCTION
+- **Current Stage**: Construction
+- **Next Stage**: Build and Test
+- **Status**: RAG-based music curation implementation and verification is in progress.
+

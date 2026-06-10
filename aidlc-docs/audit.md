@@ -1169,4 +1169,3 @@ U-002 NFR 요구사항 계획과 확인 질문을 작성했다. 사용자가 모
 9. **Risks or assumptions**: Spotify Recommendations API가 요구하는 시드(seed_artists, seed_genres, seed_tracks) 파라미터 최대 5개 제한 조건을 분석하여 유저 재생 이력 및 프롬프트로부터 어떻게 시드를 추출해 낼지 세밀한 아키텍처 대안 수립이 필요하다.
 
 ---
-

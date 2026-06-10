@@ -273,38 +273,34 @@ export class SpotifyService {
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
 
     try {
-      const query = `track:"${title}" artist:"${artistName}"`;
-      const response = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=1`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          signal: controller.signal,
+      // 1. 쿼리 정제 (따옴표 제거)
+      const cleanTitle = title.replace(/"/g, "").trim();
+      const cleanArtist = artistName.replace(/"/g, "").trim();
+
+      // 2. 1차 시도: 엄격한 필터 쿼리 (track:"..." artist:"...")
+      const strictQuery = `track:"${cleanTitle}" artist:"${cleanArtist}"`;
+      let track = await this.executeSearchFetch(accessToken, strictQuery, controller.signal);
+
+      // 3. 2차 시도: 1차 실패 시, 괄호 내용 정제 후 재시도
+      // 예: "RODEO (Radio Edit)" -> "RODEO"
+      if (!track) {
+        const regexBrackets = /\s*[\(\[][^\)\]]*[\)\]]\s*/g;
+        const strippedTitle = cleanTitle.replace(regexBrackets, "").trim();
+        const strippedArtist = cleanArtist.replace(regexBrackets, "").trim();
+
+        if (strippedTitle !== cleanTitle || strippedArtist !== cleanArtist) {
+          const strippedQuery = `track:"${strippedTitle}" artist:"${strippedArtist}"`;
+          track = await this.executeSearchFetch(accessToken, strippedQuery, controller.signal);
         }
-      );
-
-      if (!response.ok) {
-        throw new SpotifyHttpError(
-          `Spotify API error: ${response.statusText}`,
-          response.status
-        );
       }
 
-      const data: RawSpotifySearchResponse = await response.json();
-      const item = data.tracks?.items?.[0];
-
-      if (!item) {
-        return null;
+      // 4. 3차 시도: 여전히 실패 시, 필터 없는 느슨한 키워드 검색
+      if (!track) {
+        const looseQuery = `${cleanTitle} ${cleanArtist}`;
+        track = await this.executeSearchFetch(accessToken, looseQuery, controller.signal);
       }
 
-      return {
-        id: item.id,
-        uri: item.uri,
-        title: item.name,
-        artistName: item.artists?.[0]?.name || "Unknown Artist",
-      };
+      return track;
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         throw new SpotifyHttpError(
@@ -316,6 +312,47 @@ export class SpotifyService {
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  private async executeSearchFetch(
+    accessToken: string,
+    query: string,
+    signal: AbortSignal
+  ): Promise<MappedTrack | null> {
+    const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=1`;
+    console.log(`[Spotify API Request] GET /v1/search?q=${query}`);
+
+    const response = await fetch(
+      url,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        signal,
+      }
+    );
+
+    if (!response.ok) {
+      throw new SpotifyHttpError(
+        `Spotify API error: ${response.statusText}`,
+        response.status
+      );
+    }
+
+    const data: RawSpotifySearchResponse = await response.json();
+    const item = data.tracks?.items?.[0];
+
+    if (!item) {
+      return null;
+    }
+
+    return {
+      id: item.id,
+      uri: item.uri,
+      title: item.name,
+      artistName: item.artists?.[0]?.name || "Unknown Artist",
+    };
   }
 
   /**
