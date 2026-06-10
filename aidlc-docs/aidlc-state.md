@@ -170,9 +170,22 @@
 
 - [x] Operations - COMPLETE (Current MVP has no infrastructure deployment logic)
 
+### MAINTENANCE & EXPANSION PHASE
+
+- [x] U-006: Spotify User Profile Integration - COMPLETE
+  - **상태**: 스포티파이 사용자 상세 프로필 연동 및 UI 표기 기능 구현 완료, 테스트 검증 통과
+- [x] U-007: /api/spotify/profile Request Logging - COMPLETE
+  - **상태**: API 엔드포인트 요청 정보 로깅 구현 완료 및 빌드/테스트/마크다운 린트 검증 완료
+- [x] U-008: Spotify Playlist Tracks API to Items Migration - COMPLETE
+  - **상태**: 사용 중단된 /tracks 엔드포인트를 /items로 이관 완료 및 테스트 검증 완료
+- [x] U-009: Actual Track Data Integration for Preview Flow - COMPLETE
+  - **상태**: AI 호출 없이 스포티파이 실제 트랙 추가를 바로 테스트할 수 있도록 진짜 곡 데이터 3건을 UI에 연동 완료 및 빌드/테스트/마크다운 린트 검증 완료
+- [x] U-010: Console Logging Simplification - COMPLETE
+  - **상태**: 백엔드 API 요청들의 비대한 로그를 간결한 1줄짜리 흐름 로그로 간소화 완료 및 빌드/테스트/마크다운 린트 검증 완료
+
 ## 현재 상태
 
-- **Lifecycle Phase**: OPERATIONS
-- **Current Stage**: Operations
+- **Lifecycle Phase**: MAINTENANCE
+- **Current Stage**: Maintenance
 - **Next Stage**: None
-- **Status**: Operations complete. All deliverables are finalized and verified.
+- **Status**: Console logging simplification is complete and verified.

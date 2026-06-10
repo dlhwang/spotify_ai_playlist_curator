@@ -977,3 +977,196 @@ U-002 NFR 요구사항 계획과 확인 질문을 작성했다. 사용자가 모
 - `npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
 
 ---
+
+## Feature - Spotify User Profile Integration (Standard Track Plan)
+
+**Timestamp**: 2026-06-10T13:52:51+09:00
+**User Input**: "동의"
+**AI Response**: "스포티파이 /v1/me API를 확장하여 display_name, email, 이미지 등을 가져와서 사용자 프로필 카드로 UI에 이쁘게 출력하기 위한 Standard Track 계획(u-006-spotify-user-profile-plan.md)을 승인 접수하고 코드 생성을 시작했습니다."
+**Context**: FEATURE - User Profile Integration (Standard Track Plan Approval)
+
+---
+
+## Feature - Logging Requests to /api/spotify/profile (Fast Track Plan)
+
+**Timestamp**: 2026-06-10T13:57:00+09:00
+**User Input**: "/api/spotify/profile 에 보내는 request를 로그에 남겨봐"
+**AI Response**: "/api/spotify/profile API Route Handler로 들어오는 HTTP 요청 정보(URL, Method, Headers)를 콘솔 로그로 기록하는 Fast Track 계획을 수립했습니다."
+**Context**: FEATURE - Request Logging for /api/spotify/profile (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**: `/api/spotify/profile` API Route Handler로 클라이언트가 요청을 보낼 때, 들어오는 HTTP request 객체의 정보(URL, Method, Headers 등)를 자세히 파싱하여 백엔드 콘솔 로그로 남기도록 로직을 추가한다.
+2. **Task type**: 기능 보완 및 디버그 로깅 추가 (Logging Addition)
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: 외부 API나 새로운 아키텍처 연동 없이 단일 API 핸들러 내에 단순 로깅 구문을 삽입하는 작업이다.
+5. **Required context files**: `app/api/spotify/profile/route.ts`
+6. **Expected files to change**: `app/api/spotify/profile/route.ts`
+7. **Files or directories that must not change**: `aidlc-rules/`
+8. **Validation commands**: `npm run typecheck`, `npm test`
+9. **Risks or assumptions**: 로깅 추가 과정에서 Route Handler의 Next.js `GET` 시그니처 형식이 변경되는 데 따른 타입 에러나 기존 mock 테스트 실패 여부를 점검한다.
+
+---
+
+## Feature - Logging Requests to /api/spotify/profile Complete
+
+**Timestamp**: 2026-06-10T13:59:00+09:00
+**User Input**: "/api/spotify/profile 에 보내는 request를 로그에 남겨봐"
+**AI Response**: "/api/spotify/profile API Route Handler로 들어오는 요청 정보를 로깅하도록 구현하고 타입 체킹, 51개 전체 테스트, 마크다운 린트 검증을 완료했습니다."
+**Context**: FEATURE - Request Logging for /api/spotify/profile (Fast Track Completion)
+
+### 검증 결과
+
+- `npm.cmd run typecheck`: 성공 (오류 없음)
+- `npm.cmd test`: 성공 (51개 테스트 전체 통과)
+- `npx.cmd markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---
+
+## Feature - Migrate Deprecated Playlist Tracks Endpoint to Items Endpoint (Fast Track Plan)
+
+**Timestamp**: 2026-06-10T14:06:00+09:00
+**User Input**: "endpoint `https://api.spotify.com/v1/playlists/{playlist_id}/items` 로 사용해야해 `https://api.spotify.com/v1/playlists/5x1cLF9MVFmGkobKoIYrS0/tracks` 는 deprecated"
+**AI Response**: "스포티파이의 플레이리스트 곡 추가 API 엔드포인트를 사용 중단된 /tracks에서 공식 권장되는 /items로 변경하는 Fast Track 계획을 수립했습니다."
+**Context**: FEATURE - Spotify Playlist Tracks to Items Endpoint Migration (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**: `spotify-service.ts` 파일의 `addTracksToPlaylist` 메서드 내부에서 곡을 추가하는 Spotify API URL을 `https://api.spotify.com/v1/playlists/${playlistId}/tracks` 대신 `https://api.spotify.com/v1/playlists/${playlistId}/items`로 수정한다.
+2. **Task type**: 기능 개선 및 API 경로 마이그레이션 (Endpoint Migration)
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: 구조나 로직의 변화 없이 Spotify API 엔드포인트 URL 문자열 하나를 수정하는 작은 변경이다.
+5. **Required context files**:
+   - `src/server/services/spotify-service.ts`
+   - `src/server/services/spotify-service.test.ts`
+6. **Expected files to change**:
+   - `src/server/services/spotify-service.ts`
+   - `src/server/services/spotify-service.test.ts`
+7. **Files or directories that must not change**: `aidlc-rules/`
+8. **Validation commands**: `npm run typecheck`, `npm test`
+9. **Risks or assumptions**: 테스트 코드 `spotify-service.test.ts` 내부의 mock API URL 매칭부도 함께 수정하여 테스트 통과를 보장한다.
+
+---
+
+## Feature - Migrate Deprecated Playlist Tracks Endpoint to Items Endpoint Complete
+
+**Timestamp**: 2026-06-10T14:07:30+09:00
+**User Input**: "endpoint `https://api.spotify.com/v1/playlists/{playlist_id}/items` 로 사용해야해 `https://api.spotify.com/v1/playlists/5x1cLF9MVFmGkobKoIYrS0/tracks` 는 deprecated"
+**AI Response**: "스포티파이 곡 추가 API 엔드포인트를 /items로 수정 완료하였으며, 타입 체킹, 51개 전체 테스트, 마크다운 린트 검증까지 마쳤습니다."
+**Context**: FEATURE - Spotify Playlist Tracks to Items Endpoint Migration (Fast Track Completion)
+
+### 검증 결과
+
+- `npm.cmd run typecheck`: 성공 (오류 없음)
+- `npm.cmd test`: 성공 (51개 테스트 전체 통과)
+- `npx.cmd markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---
+
+## Feature - Support Actual Track Data for Preview & Quick Testing (Fast Track Plan)
+
+**Timestamp**: 2026-06-10T14:10:00+09:00
+**User Input**: "아니 스포티 파이 테스트 하는데 Ai 까지 써야겠냐고 3개 정도 실제 데이터를 가져와서 써보자고"
+**AI Response**: "AI API 호출 없이도 실제 스포티파이 곡 추가 저장 흐름을 테스트할 수 있도록, 3개의 실제 존재 트랙(Stay, Coffee, Comethru)을 UI 미리보기 및 로그인 테스트 데이터로 연동하는 Fast Track 계획을 수립했습니다."
+**Context**: FEATURE - Load Actual Track Data for Quick Testing (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**:
+   - `home-page.tsx` 내부의 `[미리보기 흐름 가동]`에서 세팅해주는 mock 트랙들의 URI를 가짜 ID 대신 실제 스포티파이에 존재하는 유효한 진짜 트랙 3곡(Stay, Coffee, Comethru)의 진짜 URI로 교체한다.
+   - 로그인 상태(`isAuthenticated === true`)에서도 AI 호출을 우회하여 이 실제 3곡 데이터를 빠르게 로드해 플레이리스트 생성을 수동 테스트할 수 있도록 `[테스트용 3곡 로드]` 버튼을 추가로 제공한다.
+2. **Task type**: UI 기능 개선 및 테스트 편의성 보완 (Testing Convenience Feature)
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: 외부 API 구조나 백엔드 비즈니스 로직 변경 없이 프론트엔드 UI 컴포넌트(`home-page.tsx`) 내에 고정된 테스트 데이터와 버튼 하나를 심는 간단한 마크업/이벤트 변경이다.
+5. **Required context files**: `src/features/home/home-page.tsx`
+6. **Expected files to change**: `src/features/home/home-page.tsx`
+7. **Files or directories that must not change**: `aidlc-rules/`
+8. **Validation commands**: `npm run typecheck`, `npm test`
+9. **Risks or assumptions**: mock ID 변경에 따른 UI 렌더링에 타입 에러나 기존 컴포넌트 유닛 테스트 실패 여부를 점검한다.
+
+---
+
+## Feature - Support Actual Track Data for Preview & Quick Testing Complete
+
+**Timestamp**: 2026-06-10T14:12:00+09:00
+**User Input**: "아니 스포티 파이 테스트 하는데 Ai 까지 써야겠냐고 3개 정도 실제 데이터를 가져와서 써보자고"
+**AI Response**: "AI API 호출 비용 없이 바로 테스트할 수 있도록 Stay, Coffee, Comethru 3곡의 스포티파이 실데이터를 연동하고 UI 변경 및 검증을 마쳤습니다."
+**Context**: FEATURE - Load Actual Track Data for Quick Testing (Fast Track Completion)
+
+### 검증 결과
+
+- `npm.cmd run typecheck`: 성공 (오류 없음)
+- `npm.cmd test`: 성공 (51개 테스트 전체 통과)
+- `npx.cmd markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---
+
+## Feature - Simplify Console Logging for API Requests (Fast Track Plan)
+
+**Timestamp**: 2026-06-10T14:15:00+09:00
+**User Input**: "로그를 정리해봐 지금까지 `[Copyable curl Command]` 로그도 있고 Request 정보 로그도 있어서 피로한데 이제는 흐름만 딱딱 볼수있게 로그를 정리해줘"
+**AI Response**: "스포티파이 연동 디버깅이 성공적으로 완료됨에 따라, 백엔드 콘솔의 피로감을 줄이기 위해 상세한 헤더/바디/curl 명령어가 포함된 기존의 상세 로그들을 직관적이고 간결한 흐름 로그(1줄 요약)로 교체하는 Fast Track 계획을 수립했습니다."
+**Context**: FEATURE - Console Logging Simplification (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**:
+   - `app/api/spotify/profile/route.ts` 및 `src/server/services/spotify-service.ts`에 남겨진 상세 API 요청 정보(headers, requestBody, curl 명령어) 로깅을 모두 제거한다.
+   - 대신 요청의 시작과 핵심 인자(URL, Method, 곡 개수 등)만 표시되는 직관적이고 깔끔한 단일 라인 형태의 로그로 대체한다.
+2. **Task type**: 로깅 개선 및 정리 (Logging Refactoring)
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: 실제 서비스 코드 로직이나 통신 방식 변경 없이 오직 콘솔 출력 내용(`console.log`)만 간결하게 가다듬는 단순 정리 작업이다.
+5. **Required context files**:
+   - `app/api/spotify/profile/route.ts`
+   - `src/server/services/spotify-service.ts`
+6. **Expected files to change**:
+   - `app/api/spotify/profile/route.ts`
+   - `src/server/services/spotify-service.ts`
+7. **Files or directories that must not change**: `aidlc-rules/`
+8. **Validation commands**: `npm run typecheck`, `npm test`
+9. **Risks or assumptions**: 로깅 제거 과정에서 연관 로직이 훼손되지 않도록 주의하고, 테스트 검증을 진행한다.
+
+---
+
+## Feature - Simplify Console Logging for API Requests Complete
+
+**Timestamp**: 2026-06-10T14:16:00+09:00
+**User Input**: "로그를 정리해봐 지금까지 `[Copyable curl Command]` 로그도 있고 Request 정보 로그도 있어서 피로한데 이제는 흐름만 딱딱 볼수있게 로그를 정리해줘"
+**AI Response**: "백엔드 API 요청 로깅을 한 줄의 깔끔한 흐름 로그로 다듬고, 타입 체킹, 51개 전체 테스트, 마크다운 린트 검증을 완료했습니다."
+**Context**: FEATURE - Console Logging Simplification (Fast Track Completion)
+
+### 검증 결과
+
+- `npm.cmd run typecheck`: 성공 (오류 없음)
+- `npm.cmd test`: 성공 (51개 테스트 전체 통과)
+- `npx.cmd markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+
+---
+
+## Inception - RAG-Based Music Curation Architecture (Design Track Plan)
+
+**Timestamp**: 2026-06-10T16:10:00+09:00
+**User Input**: "플랜 고도화를 먼저 개발하지않고 인셉션을 해보자"
+**AI Response**: "스포티파이 Recommendations API를 통한 1차 후보군 확보 및 LLM 컨텍스트 주입(RAG형) 음악 추천 모델을 정립하기 위해 Design Track 모드 하에 인셉션 설계 단계에 착수했습니다."
+**Context**: INCEPTION - RAG Music Curation Inception & Architecture Design (Design Track)
+
+### Design Track 계획
+
+1. **Requirement summary**: LLM에 실재하는 음악 카탈로그 지식을 주입하여 가짜 곡 추천(환각)을 제거하고 최적의 결과를 얻기 위해, 스포티파이 Recommendations API 연동 방식, 프롬프트 엔지니어링, 데이터 모델 흐름을 설계하는 Inception 기획 및 아키텍처 설계를 수행한다.
+2. **Task type**: 신규 아키텍처 인셉션 및 기획 설계 (Inception & Architecture Design)
+3. **Selected AI-DLC execution mode**: Design Track
+4. **Reason for selected mode**: 실제 코드 개발을 바로 진행하지 않고 설계 결정(외부 API 연동 방식, 토큰 제한 및 예외 조건 처리 등)을 선행하기 위함이다.
+5. **Required context files**:
+   - `src/server/services/llm-client.ts`
+   - `src/server/services/spotify-service.ts`
+6. **Expected files to change**:
+   - `aidlc-docs/aidlc-state.md`
+   - `aidlc-docs/audit.md`
+   - `aidlc-docs/inception/requirements/rag-curation-requirements.md` [NEW]
+   - `aidlc-docs/inception/application-design/rag-architecture.md` [NEW]
+7. **Files or directories that must not change**: `src/`, `app/` (인셉션 단계이므로 소스 코드 변경 금지)
+8. **Validation commands**: `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`
+9. **Risks or assumptions**: Spotify Recommendations API가 요구하는 시드(seed_artists, seed_genres, seed_tracks) 파라미터 최대 5개 제한 조건을 분석하여 유저 재생 이력 및 프롬프트로부터 어떻게 시드를 추출해 낼지 세밀한 아키텍처 대안 수립이 필요하다.
+
+---
+

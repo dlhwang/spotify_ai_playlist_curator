@@ -54,7 +54,7 @@ Please recommend 10 to 15 matching tracks with their titles and artists.`;
 
     try {
       // 1차 시도
-      return await this.callLlmWithTimeoutAndParse(fullPrompt, 10000);
+      return await this.callLlmWithTimeoutAndParse(fullPrompt, 20000);
     } catch (error) {
       // JSON 파싱 에러(SyntaxError)가 발생하면 1회 즉각 재요청
       const isParsingError = error instanceof SyntaxError;

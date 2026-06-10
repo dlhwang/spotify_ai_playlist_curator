@@ -3,6 +3,15 @@ import { Track } from "@/domain/track";
 import { SearchCurationResult, MappedTrack, RawSpotifySearchResponse } from "@/domain/search";
 
 
+export interface SpotifyUserProfile {
+  id: string;
+  displayName: string;
+  email: string;
+  imageUrl?: string;
+  product: string;
+}
+
+
 export class SpotifyHttpError extends Error {
   status: number;
 
@@ -350,6 +359,72 @@ export class SpotifyService {
   }
 
   /**
+   * Retrieves the current user's full profile details.
+   */
+  async getCurrentUserProfile(cookieStore: CookieStore): Promise<SpotifyUserProfile> {
+    const hasCredentials = !!process.env.SPOTIFY_CLIENT_ID && !!process.env.SPOTIFY_CLIENT_SECRET;
+    const isMockMode = !hasCredentials || process.env.MOCK_SPOTIFY === "true";
+
+    if (isMockMode) {
+      return {
+        id: "mock-user-id",
+        displayName: "Mock User",
+        email: "mock@example.com",
+        imageUrl: undefined,
+        product: "premium"
+      };
+    }
+
+    const session = this.authService.getSession(cookieStore);
+    if (!session) {
+      throw new Error("No active Spotify session found");
+    }
+
+    const fetchProfile = async (token: string): Promise<SpotifyUserProfile> => {
+      const url = "https://api.spotify.com/v1/me";
+      const headers = {
+        Authorization: `Bearer ${token}`
+      };
+
+      console.log(`[Spotify API Request] GET ${url}`);
+
+      const response = await fetch(url, {
+        headers
+      });
+      if (!response.ok) {
+        let errorBody = "";
+        try {
+          errorBody = await response.text();
+        } catch (_) {
+          // ignore
+        }
+        console.error(`Failed to fetch user profile. Status: ${response.status}, Body: ${errorBody}`);
+        throw new SpotifyHttpError(`Spotify API error: ${response.statusText}`, response.status);
+      }
+      const data = await response.json();
+      return {
+        id: data.id as string,
+        displayName: data.display_name || (data.id as string),
+        email: data.email || "",
+        imageUrl: data.images?.[0]?.url as string | undefined,
+        product: data.product || "free"
+      };
+    };
+
+    try {
+      return await fetchProfile(session.accessToken);
+    } catch (error) {
+      const isHttpError = error instanceof SpotifyHttpError;
+      if (isHttpError && error.status === 401 && session.refreshToken) {
+        const updatedSession = await this.authService.refreshSession(session.refreshToken);
+        this.authService.setSession(cookieStore, updatedSession);
+        return await fetchProfile(updatedSession.accessToken);
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Creates a new playlist for the user.
    */
   async createPlaylist(cookieStore: CookieStore, userId: string, name: string, description: string): Promise<string> {
@@ -366,15 +441,28 @@ export class SpotifyService {
     }
 
     const fetchCreate = async (token: string) => {
-      const response = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+      const url = "https://api.spotify.com/v1/me/playlists";
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      };
+      const requestBody = { name, description, public: false };
+
+      console.log(`[Spotify API Request] POST ${url} (Name: "${name}")`);
+
+      const response = await fetch(url, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ name, description, public: false })
+        headers,
+        body: JSON.stringify(requestBody)
       });
       if (!response.ok) {
+        let errorBody = "";
+        try {
+          errorBody = await response.text();
+        } catch (_) {
+          // ignore
+        }
+        console.error(`Failed to create playlist. Status: ${response.status}, Body: ${errorBody}`);
         throw new SpotifyHttpError(`Spotify API error: ${response.statusText}`, response.status);
       }
       const data = await response.json();
@@ -413,15 +501,29 @@ export class SpotifyService {
     }
 
     const fetchAdd = async (token: string) => {
-      const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+      const url = `https://api.spotify.com/v1/playlists/${playlistId}/items`;
+      const headers = {
+
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      };
+      const requestBody = { uris: trackUris };
+
+      console.log(`[Spotify API Request] POST ${url} (Added ${trackUris.length} tracks)`);
+
+      const response = await fetch(url, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ uris: trackUris })
+        headers,
+        body: JSON.stringify(requestBody)
       });
       if (!response.ok) {
+        let errorBody = "";
+        try {
+          errorBody = await response.text();
+        } catch (_) {
+          // ignore
+        }
+        console.error(`Failed to add tracks to playlist. Status: ${response.status}, Body: ${errorBody}`);
         throw new SpotifyHttpError(`Spotify API error: ${response.statusText}`, response.status);
       }
     };

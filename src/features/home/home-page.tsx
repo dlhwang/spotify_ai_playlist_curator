@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface HomePageProps {
   isAuthenticated?: boolean;
@@ -19,6 +19,14 @@ interface CurationResult {
   tracks: CurationTrack[];
 }
 
+interface SpotifyUserProfile {
+  id: string;
+  displayName: string;
+  email: string;
+  imageUrl?: string;
+  product: string;
+}
+
 export function HomePage({ isAuthenticated = false }: HomePageProps) {
   const [prompt, setPrompt] = useState("퇴근길에 들을 수 있는 차분하지만 리듬감 있는 playlist");
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +34,25 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [savedPlaylistId, setSavedPlaylistId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<SpotifyUserProfile | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/spotify/profile");
+        if (res.ok) {
+          const data = await res.json();
+          setProfile(data);
+        }
+      } catch (e) {
+        console.error("Failed to load user profile:", e);
+      }
+    };
+
+    fetchProfile();
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     window.location.href = "/api/spotify/logout";
@@ -118,17 +145,53 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
             {/* Prompt Form or Login prompt */}
             {isAuthenticated ? (
               <div className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl">
+                {/* Spotify User Profile Card */}
+                {profile && (
+                  <div className="flex items-center gap-4 pb-4 border-b border-slate-800/80">
+                    {profile.imageUrl ? (
+                      <img
+                        src={profile.imageUrl}
+                        alt={profile.displayName}
+                        className="h-12 w-12 rounded-full border border-emerald-500/20 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-slate-300 ring-1 ring-slate-700">
+                        {profile.displayName.substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-white truncate">{profile.displayName}</p>
+                        {profile.product === "premium" && (
+                          <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20 font-sans">
+                            Premium
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">{profile.email}</p>
+                    </div>
+                    <span 
+                      className="text-xs text-emerald-400 font-medium animate-pulse"
+                      data-testid="home-status-connected"
+                    >
+                      ● 연결됨
+                    </span>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label htmlFor="curation-prompt" className="text-sm font-semibold text-slate-200">
                       원하는 분위기를 상세히 말해주세요
                     </label>
-                    <span 
-                      className="text-xs text-emerald-400 font-medium"
-                      data-testid="home-status-connected"
-                    >
-                      ● Spotify 연결됨
-                    </span>
+                    {!profile && (
+                      <span 
+                        className="text-xs text-emerald-400 font-medium"
+                        data-testid="home-status-connected"
+                      >
+                        ● Spotify 연결됨
+                      </span>
+                    )}
                   </div>
                   <textarea
                     id="curation-prompt"
@@ -159,6 +222,25 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                     ) : "플레이리스트 생성"}
                   </button>
                   <button
+                    onClick={() => {
+                      setPrompt("퇴근길에 들을 수 있는 차분하지만 리듬감 있는 playlist");
+                      setCurationResult({
+                        title: "Neon Evening Reset",
+                        description: "하루를 내려놓는 부드러운 비트와 선명한 멜로디를 중심으로 만든 저녁용 playlist 초안입니다. (실제 트랙 3곡 구성)",
+                        tracks: [
+                          { id: "real-stay", uri: "spotify:track:5HCyWkgU61j21yUjVmw2aV", title: "Stay", artistName: "The Kid LAROI, Justin Bieber" },
+                          { id: "real-coffee", uri: "spotify:track:4t9n2v1VM7V0IF5U5fbg61", title: "Coffee", artistName: "beabadoobee" },
+                          { id: "real-comethru", uri: "spotify:track:18uw3e2j22wALnCjL8bHsi", title: "Comethru", artistName: "Jeremy Zucker" },
+                        ]
+                      });
+                      setSavedPlaylistId(null);
+                    }}
+                    className="inline-flex h-12 items-center justify-center rounded-xl border border-dashed border-emerald-500/30 bg-emerald-500/5 px-5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition"
+                    type="button"
+                  >
+                    테스트용 3곡 로드
+                  </button>
+                  <button
                     onClick={handleLogout}
                     className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-800 bg-slate-950 px-5 text-sm font-semibold text-slate-300 hover:border-slate-700 hover:text-white transition active:bg-slate-900"
                     data-testid="home-disconnect-spotify-button"
@@ -167,6 +249,7 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                     연결 해제 (로그아웃)
                   </button>
                 </div>
+
 
                 {error && (
                   <p className="text-xs text-rose-400 mt-2 font-medium bg-rose-500/10 p-3 rounded-lg border border-rose-500/20">
@@ -191,11 +274,11 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                     setPrompt("퇴근길에 들을 수 있는 차분하지만 리듬감 있는 playlist");
                     setCurationResult({
                       title: "Neon Evening Reset",
-                      description: "하루를 내려놓는 부드러운 비트와 선명한 멜로디를 중심으로 만든 저녁용 playlist 초안입니다.",
+                      description: "하루를 내려놓는 부드러운 비트와 선명한 멜로디를 중심으로 만든 저녁용 playlist 초안입니다. (실제 트랙 3곡 구성)",
                       tracks: [
-                        { id: "mock-1", uri: "spotify:track:1", title: "Stay", artistName: "The Kid LAROI, Justin Bieber" },
-                        { id: "mock-2", uri: "spotify:track:2", title: "Coffee", artistName: "beabadoobee" },
-                        { id: "mock-3", uri: "spotify:track:3", title: "Comethru", artistName: "Jeremy Zucker" },
+                        { id: "real-stay", uri: "spotify:track:5HCyWkgU61j21yUjVmw2aV", title: "Stay", artistName: "The Kid LAROI, Justin Bieber" },
+                        { id: "real-coffee", uri: "spotify:track:4t9n2v1VM7V0IF5U5fbg61", title: "Coffee", artistName: "beabadoobee" },
+                        { id: "real-comethru", uri: "spotify:track:18uw3e2j22wALnCjL8bHsi", title: "Comethru", artistName: "Jeremy Zucker" },
                       ]
                     });
                   }}
@@ -205,6 +288,7 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                 >
                   미리보기 흐름 가동
                 </button>
+
               </div>
             )}
           </div>
@@ -246,7 +330,7 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                   </h4>
                   <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/60 pr-1 space-y-1">
                     {curationResult.tracks.map((track, i) => (
-                      <div key={track.id || i} className="flex items-center gap-3 py-2.5">
+                      <div key={`${track.id}-${i}`} className="flex items-center gap-3 py-2.5">
                         <span className="w-5 text-xs text-slate-600 font-semibold text-center">{i + 1}</span>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-slate-200 truncate">{track.title}</p>

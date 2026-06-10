@@ -476,6 +476,44 @@ describe("SpotifyService", () => {
     });
   });
 
+  describe("getCurrentUserProfile", () => {
+    it("should return mock profile in mock mode", async () => {
+      process.env.MOCK_SPOTIFY = "true";
+      const profile = await spotifyService.getCurrentUserProfile(mockCookieStore);
+      expect(profile.id).toBe("mock-user-id");
+      expect(profile.displayName).toBe("Mock User");
+      expect(profile.email).toBe("mock@example.com");
+      expect(profile.product).toBe("premium");
+    });
+
+    it("should fetch full user profile in live mode", async () => {
+      process.env.MOCK_SPOTIFY = "false";
+      process.env.SPOTIFY_CLIENT_ID = "client-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "client-secret";
+
+      const mockResponse = {
+        ok: true,
+        json: async () => ({
+          id: "real-user-id",
+          display_name: "Real User",
+          email: "real@example.com",
+          images: [{ url: "https://example.com/avatar.jpg" }],
+          product: "premium"
+        }),
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(mockResponse as unknown as Response);
+
+      const profile = await spotifyService.getCurrentUserProfile(mockCookieStore);
+      expect(profile.id).toBe("real-user-id");
+      expect(profile.displayName).toBe("Real User");
+      expect(profile.email).toBe("real@example.com");
+      expect(profile.imageUrl).toBe("https://example.com/avatar.jpg");
+      expect(profile.product).toBe("premium");
+      expect(fetchSpy).toHaveBeenCalledWith("https://api.spotify.com/v1/me", expect.any(Object));
+    });
+  });
+
   describe("createPlaylist", () => {
     it("should return mock-playlist-id when in mock mode", async () => {
       process.env.MOCK_SPOTIFY = "true";
@@ -498,7 +536,7 @@ describe("SpotifyService", () => {
       const playlistId = await spotifyService.createPlaylist(mockCookieStore, "real-user-123", "My Playlist", "Description");
       expect(playlistId).toBe("playlist-555");
       expect(fetchSpy).toHaveBeenCalledWith(
-        "https://api.spotify.com/v1/users/real-user-123/playlists",
+        "https://api.spotify.com/v1/me/playlists",
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({ name: "My Playlist", description: "Description", public: false }),
@@ -528,12 +566,13 @@ describe("SpotifyService", () => {
 
       await spotifyService.addTracksToPlaylist(mockCookieStore, "playlist-555", ["spotify:track:1", "spotify:track:2"]);
       expect(fetchSpy).toHaveBeenCalledWith(
-        "https://api.spotify.com/v1/playlists/playlist-555/tracks",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({ uris: ["spotify:track:1", "spotify:track:2"] }),
-        })
+         "https://api.spotify.com/v1/playlists/playlist-555/items",
+         expect.objectContaining({
+           method: "POST",
+           body: JSON.stringify({ uris: ["spotify:track:1", "spotify:track:2"] }),
+         })
       );
+
     });
   });
 });
