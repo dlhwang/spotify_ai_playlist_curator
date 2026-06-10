@@ -125,10 +125,40 @@ npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"
 
 ---
 
-## AI-DLC 설계 및 검증 산출물
+## AI-DLC 설계 및 검증 산출물 (SDD) 워크플로우
 
-상세 아키텍처 및 요구사항 추적은 다음 문서를 참고해 주십시오:
+본 프로젝트의 설계(SDD)와 개발 프로세스는 **AI-DLC(AI Software Development Life Cycle)** 규격을 따라 순차적으로 진행되었습니다. 아래 순서대로 문서를 읽으시면 프로젝트의 흐름을 가장 잘 파악하실 수 있습니다.
 
-- **요구사항 정의서**: [requirements.md](file:///Users/sayongja/IdeaProjects/spotify_ai_playlist_curator/aidlc-docs/inception/requirements/requirements.md)
-- **상위 설계 통합 문서**: [application-design.md](file:///Users/sayongja/IdeaProjects/spotify_ai_playlist_curator/aidlc-docs/inception/application-design/application-design.md)
-- **빌드 및 테스트 결과 요약**: [build-and-test-summary.md](file:///Users/sayongja/IdeaProjects/spotify_ai_playlist_curator/aidlc-docs/construction/build-and-test/build-and-test-summary.md)
+### 1단계: Inception (요구사항 정의 및 상위 설계)
+
+프로젝트의 목표를 정의하고 아키텍처 경계를 나누는 분석 설계 단계입니다.
+
+1. **요구사항 정의서** ([requirements.md](aidlc-docs/inception/requirements/requirements.md))
+   - 시스템의 기능적 요구사항(`R-XXX`)과 비기능적 요구사항(`NFR-XXX`)을 처음으로 정의한 핵심 스펙 문서입니다.
+2. **사용자 스토리** ([stories.md](aidlc-docs/inception/user-stories/stories.md))
+   - 요구사항을 바탕으로 사용자 시나리오(`S-XXX`)와 각 스토리가 통과해야 할 인수 조건(Acceptance Criteria)을 작성한 문서입니다.
+3. **상위 설계 통합 문서** ([application-design.md](aidlc-docs/inception/application-design/application-design.md))
+   - 전체 시스템 아키텍처, 디렉토리 설계, 핵심 도메인 모델(큐레이션, 세션 등) 간의 협력을 정립한 문서입니다.
+4. **작업 단위 맵핑 및 의존성**
+   - [unit-of-work.md](aidlc-docs/inception/application-design/unit-of-work.md): 스토리와 요구사항을 5개의 단위 작업(`U-001` ~ `U-005`)으로 분할하고 담당 범위를 명시합니다.
+   - [unit-of-work-story-map.md](aidlc-docs/inception/application-design/unit-of-work-story-map.md): 어떤 스토리가 어떤 유닛에 구현되는지 매핑한 관계 테이블입니다.
+5. **실행 계획서** ([execution-plan.md](aidlc-docs/inception/plans/execution-plan.md))
+   - 각 작업 단위의 구현 순서, 마일스톤, 그리고 테스트 검증 기준을 종합한 로드맵입니다.
+
+### 2단계: Construction (상세 설계 및 구현)
+
+각 작업 단위(`U-001`부터 `U-005`까지)별로 구체적인 설계를 세우고 구현을 진행하는 단계입니다.
+
+- **상세 기능/비기능 설계 및 코드 생성 계획** (`aidlc-docs/construction/plans/`)
+  - 각 유닛의 작업 착수 전에 설계 사양을 정의하고 계획을 기술한 문서들입니다. (예: [U-002 코드 생성 계획](aidlc-docs/construction/plans/u-002-spotify-auth-session-code-generation-plan.md))
+- **유닛별 결과 산출물** (`aidlc-docs/construction/u-*/`)
+  - 각 단위 작업마다 실제로 도출된 상세 비기능 요구사항 분석 및 기능 설계 결과가 담겨 있습니다. (예: `u-002-spotify-auth-session/` 내의 설계 문서들)
+
+### 3단계: Verification & Audit (최종 검증 및 상태 관리)
+
+- **빌드 및 테스트 결과 요약** ([build-and-test-summary.md](aidlc-docs/construction/build-and-test/build-and-test-summary.md))
+  - 개발 완료 후 41개의 모든 단위/통합 테스트와 빌드 검증을 최종적으로 수행하여 품질 목표를 통과했음을 증명하는 보고서입니다.
+- **진행 상태 관리** ([aidlc-state.md](aidlc-docs/aidlc-state.md))
+  - 유닛별로 현재 단계(Functional Design, Code Gen 등)의 진행 및 완료 상태를 투명하게 관리하는 문서입니다.
+- **의사결정 및 감사 기록** ([audit.md](aidlc-docs/audit.md))
+  - 개발 과정에서 발생한 핵심 의사결정 사항, 사용자 계획 승인 내역, 상태 변경 이력을 타임스탬프 순으로 누적 기록한 감사 로그입니다.
