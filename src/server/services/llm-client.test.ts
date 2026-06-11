@@ -41,6 +41,113 @@ describe("LlmClient", () => {
 
       expect(result.title).toBe("Energy Boost Mix");
     });
+
+    it("should extract three-axis curation specs in mock procedural mode", async () => {
+      const client = new LlmClient(undefined, true);
+
+      const specs = await client.extractCurationSpecs("퇴근길 드라이브에 어울리는 차분한 음악", mockRecentTracks);
+
+      expect(specs.genreMoodSpec.mustHave).toContain("chill");
+      expect(specs.placeContextSpec.mustHave).toContain("commute");
+      expect(specs.artistTitleSpec.artists).toContain("Recent Artist");
+    });
+
+    it("should create search rounds from curation specs in mock procedural mode", async () => {
+      const client = new LlmClient(undefined, true);
+      const specs = await client.extractCurationSpecs("night drive chill", mockRecentTracks);
+
+      const rounds = await client.createSearchPlan(specs, mockRecentTracks);
+
+      expect(rounds.map((round) => round.round)).toEqual(["genreMood", "placeContext", "artistTitle"]);
+      expect(rounds[0].limitPerQuery).toBe(10);
+      expect(rounds[2].queries.some((query) => query.includes("Recent Artist"))).toBe(true);
+    });
+
+    it("should extract lineup constraints and prefer artist searches for festival prompts", async () => {
+      const client = new LlmClient(undefined, true);
+      const specs = await client.extractCurationSpecs(`2026 인천 펜타포트 락 페스티벌 예습 playlist
+
+[해외 / 주요 라인업]
+
+Khruangbin
+Massive Attack
+
+[국내 / 주요 라인업]
+
+쏜애플
+실리카겔
+
+내 취향 반영:
+어둡고 밀도 있는 밴드 사운드`, []);
+
+      expect(specs.constraints?.mode).toBe("lineup");
+      expect(specs.constraints?.lineupConstraint).toBe("strict");
+      expect(specs.constraints?.allowedArtists).toEqual([
+        "Khruangbin",
+        "Massive Attack",
+        "쏜애플",
+        "실리카겔",
+      ]);
+
+      const rounds = await client.createSearchPlan(specs, []);
+
+      expect(rounds).toHaveLength(1);
+      expect(rounds[0].round).toBe("artistTitle");
+      expect(rounds[0].queries).toEqual([
+        'artist:"Khruangbin"',
+        'artist:"Massive Attack"',
+        'artist:"쏜애플"',
+        'artist:"실리카겔"',
+      ]);
+    });
+
+    it("should request artist depth for artists with fewer than three candidates", async () => {
+      const client = new LlmClient(undefined, true);
+      const specs = await client.extractCurationSpecs("recent artist mood", mockRecentTracks);
+
+      const coverage = await client.evaluateCandidateCoverage(specs, [
+        { id: "1", uri: "spotify:track:1", title: "Song 1", artistName: "Recent Artist" },
+      ]);
+
+      expect(coverage.artistDepthTargets[0].artistName).toBe("Recent Artist");
+      expect(coverage.artistDepthTargets[0].requestedMinimum).toBe(3);
+    });
+
+    it("should request artist depth only for allowed lineup artists in strict lineup mode", async () => {
+      const client = new LlmClient(undefined, true);
+      const specs = await client.extractCurationSpecs(`페스티벌 라인업 예습
+
+[국내 / 주요 라인업]
+
+쏜애플
+실리카겔
+
+내 취향 반영:
+몽환적인 밴드 사운드`, []);
+
+      const coverage = await client.evaluateCandidateCoverage(specs, [
+        { id: "allowed", uri: "spotify:track:allowed", title: "Allowed", artistName: "쏜애플" },
+        { id: "outside", uri: "spotify:track:outside", title: "Outside", artistName: "Outside Artist" },
+      ]);
+
+      expect(coverage.artistDepthTargets.map((target) => target.artistName)).toEqual(["쏜애플", "실리카겔"]);
+    });
+
+    it("should curate from expanded Spotify candidates in mock procedural mode", async () => {
+      const client = new LlmClient(undefined, true);
+      const specs = await client.extractCurationSpecs("night drive chill", mockRecentTracks);
+      const candidates = [
+        { id: "1", uri: "spotify:track:1", title: "Song 1", artistName: "Artist A" },
+        { id: "2", uri: "spotify:track:2", title: "Song 2", artistName: "Artist A" },
+        { id: "3", uri: "spotify:track:3", title: "Song 3", artistName: "Artist A" },
+      ];
+
+      const result = await client.curateWithExpandedCandidates("night drive chill", specs, candidates, mockRecentTracks);
+
+      expect(result.title).toBe("Procedural Midnight Flow");
+      expect(result.tracks).toHaveLength(3);
+      expect(result.tracks[0].uri).toBe("spotify:track:1");
+    });
   });
 
   describe("Live Mode with API Key", () => {
@@ -185,6 +292,43 @@ describe("LlmClient", () => {
       expect(result.description).toBe("Best indie track curator suggestion");
       expect(result.tracks).toHaveLength(2);
       expect(result.tracks[0].title).toBe("Indie Song 1");
+    });
+
+    it("should parse final procedural curation and keep only candidate tracks", async () => {
+      const client = new LlmClient("valid-api-key", false);
+      const specs = await new LlmClient(undefined, true).extractCurationSpecs("night drive", mockRecentTracks);
+      const candidates = [
+        { id: "keep-1", uri: "spotify:track:keep-1", title: "Keep One", artistName: "Artist A" },
+        { id: "keep-2", uri: "spotify:track:keep-2", title: "Keep Two", artistName: "Artist A" },
+      ];
+      const mockLlmOutput = {
+        playlistTitle: "Candidate Mix",
+        playlistDescription: "Only candidate tracks",
+        targetDurationMinutes: 150,
+        tracks: [
+          { id: "keep-1", uri: "spotify:track:keep-1", title: "Keep One", artistName: "Artist A" },
+          { id: "outside", uri: "spotify:track:outside", title: "Outside", artistName: "Artist B" },
+        ],
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: async () => ({
+          candidates: [{
+            content: {
+              parts: [{ text: JSON.stringify(mockLlmOutput) }]
+            }
+          }]
+        })
+      };
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(mockResponse as unknown as Response);
+
+      const result = await client.curateWithExpandedCandidates("night drive", specs, candidates, mockRecentTracks);
+
+      expect(result.title).toBe("Candidate Mix");
+      expect(result.tracks).toHaveLength(1);
+      expect(result.tracks[0].id).toBe("keep-1");
     });
 
     it("should retry once on JSON parsing error, and succeed if the second response is valid", async () => {

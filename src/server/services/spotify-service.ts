@@ -1,6 +1,7 @@
 import { AuthService, CookieStore } from "./auth-service";
 import { Track } from "@/domain/track";
 import { SearchCurationResult, MappedTrack, RawSpotifySearchResponse } from "@/domain/search";
+import { ArtistDepthTarget, SearchQueryRound } from "@/domain/curation";
 
 
 export interface SpotifyUserProfile {
@@ -237,6 +238,54 @@ export class SpotifyService {
     }
   }
 
+  async searchTracksByQueryRounds(
+    cookieStore: CookieStore,
+    rounds: SearchQueryRound[]
+  ): Promise<MappedTrack[]> {
+    const hasCredentials = !!process.env.SPOTIFY_CLIENT_ID && !!process.env.SPOTIFY_CLIENT_SECRET;
+    const isMockMode = !hasCredentials || process.env.MOCK_SPOTIFY === "true";
+
+    if (isMockMode) {
+      return this.createMockTracksFromRounds(rounds);
+    }
+
+    const session = this.authService.getSession(cookieStore);
+    if (!session) {
+      throw new Error("No active Spotify session found");
+    }
+
+    try {
+      return await this.searchRoundsWithToken(session.accessToken, rounds);
+    } catch (error) {
+      const isHttpError = error instanceof SpotifyHttpError;
+      if (isHttpError && error.status === 401 && session.refreshToken) {
+        try {
+          const updatedSession = await this.authService.refreshSession(session.refreshToken);
+          this.authService.setSession(cookieStore, updatedSession);
+          return await this.searchRoundsWithToken(updatedSession.accessToken, rounds);
+        } catch (refreshError) {
+          this.authService.clearSession(cookieStore);
+          throw refreshError;
+        }
+      }
+      throw error;
+    }
+  }
+
+  async expandArtistDepthCandidates(
+    cookieStore: CookieStore,
+    targets: ArtistDepthTarget[]
+  ): Promise<MappedTrack[]> {
+    const rounds: SearchQueryRound[] = targets.map((target) => ({
+      round: "artistDepth",
+      queries: target.queries.length > 0 ? target.queries : [`artist:"${target.artistName}"`],
+      limitPerQuery: Math.min(Math.max(target.requestedMinimum, 1), 10),
+      offsets: [0],
+    }));
+
+    return this.searchTracksByQueryRounds(cookieStore, rounds);
+  }
+
   private async searchAllTracksParallel(
     accessToken: string,
     tracksToSearch: Array<{ title: string; artistName: string }>
@@ -262,6 +311,134 @@ export class SpotifyService {
     }
 
     return mappedTracks;
+  }
+
+  private async searchRoundsWithToken(
+    accessToken: string,
+    rounds: SearchQueryRound[]
+  ): Promise<MappedTrack[]> {
+    const searchTasks: Array<Promise<MappedTrack[]>> = [];
+
+    for (const round of rounds) {
+      const limit = Math.min(Math.max(round.limitPerQuery || 10, 1), 10);
+      const offsets = Array.isArray(round.offsets) && round.offsets.length > 0 ? round.offsets : [0];
+
+      for (const query of round.queries) {
+        for (const offset of offsets.slice(0, 3)) {
+          searchTasks.push(
+            this.executeSearchFetchMany(accessToken, query, limit, offset)
+              .catch((err) => {
+                console.warn(`Failed to search RAG query "${query}" at offset ${offset}:`, err);
+                if (err instanceof SpotifyHttpError && err.status === 401) {
+                  throw err;
+                }
+                return [];
+              })
+          );
+        }
+      }
+    }
+
+    const nestedResults = await Promise.all(searchTasks);
+    return this.deduplicateMappedTracks(nestedResults.flat());
+  }
+
+  private async executeSearchFetchMany(
+    accessToken: string,
+    query: string,
+    limit: number,
+    offset: number
+  ): Promise<MappedTrack[]> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const safeLimit = Math.min(Math.max(limit, 1), 10);
+      const safeOffset = Math.min(Math.max(offset, 0), 1000);
+      const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=${safeLimit}&offset=${safeOffset}`;
+      console.log(`[Spotify API Request] GET /v1/search?q=${query}&limit=${safeLimit}&offset=${safeOffset}`);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new SpotifyHttpError(
+          `Spotify API error: ${response.statusText}`,
+          response.status
+        );
+      }
+
+      const data: RawSpotifySearchResponse = await response.json();
+      return (data.tracks?.items || []).map((item) => ({
+        id: item.id,
+        uri: item.uri,
+        title: item.name,
+        artistName: item.artists?.[0]?.name || "Unknown Artist",
+      }));
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new SpotifyHttpError(
+          "Spotify Search API request timed out (5s limit)",
+          408
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  private deduplicateMappedTracks(tracks: MappedTrack[]): MappedTrack[] {
+    const seen = new Set<string>();
+    const deduplicated: MappedTrack[] = [];
+
+    for (const track of tracks) {
+      const key = track.id || track.uri;
+      if (!key || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      deduplicated.push(track);
+    }
+
+    return deduplicated;
+  }
+
+  private createMockTracksFromRounds(rounds: SearchQueryRound[]): MappedTrack[] {
+    const tracks: MappedTrack[] = [];
+
+    for (const round of rounds) {
+      for (const query of round.queries) {
+        const cleanQuery = query.replace(/artist:|track:|genre:|"/g, "").trim() || "Mock Query";
+        const artistName = this.toTitleCase(cleanQuery.split(/\s+/).slice(0, 2).join(" ")) || "Mock Artist";
+        const count = Math.min(Math.max(round.limitPerQuery || 3, 3), 5);
+
+        for (let index = 0; index < count; index += 1) {
+          const hash = `${index}-${Buffer.from(`${round.round}-${query}`).toString("hex").substring(0, 10)}`;
+          tracks.push({
+            id: `mock-rag-${hash}`,
+            uri: `spotify:track:mock-rag-${hash}`,
+            title: `${this.toTitleCase(cleanQuery)} ${index + 1}`,
+            artistName,
+          });
+        }
+      }
+    }
+
+    return this.deduplicateMappedTracks(tracks);
+  }
+
+  private toTitleCase(value: string): string {
+    return value
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   }
 
   private async searchSingleTrackWithTimeout(

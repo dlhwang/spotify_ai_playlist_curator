@@ -1,4 +1,5 @@
 import { Track } from "./track";
+import { MappedTrack } from "./search";
 
 export interface CuratedTrack {
   /** 추천된 곡의 제목 (예: "Stay") */
@@ -17,6 +18,83 @@ export interface CuratedPlaylist {
   
   /** AI가 추천한 텍스트 기반 트랙 리스트 (최대 10~15곡) */
   tracks: CuratedTrack[];
+}
+
+export interface CurationSpec {
+  mustHave: string[];
+  niceToHave: string[];
+  avoid: string[];
+  confidence: number;
+}
+
+export interface ArtistTitleSpec {
+  artists: string[];
+  similarArtists: string[];
+  titles: string[];
+  avoid: string[];
+  confidence: number;
+}
+
+export interface CurationSpecs {
+  genreMoodSpec: CurationSpec;
+  placeContextSpec: CurationSpec;
+  artistTitleSpec: ArtistTitleSpec;
+  constraints?: CurationConstraints;
+}
+
+export interface CurationConstraints {
+  mode: "open" | "lineup";
+  allowedArtists: string[];
+  allowedArtistAliases?: Record<string, string[]>;
+  lineupConstraint?: "strict" | "soft";
+}
+
+export interface SearchQueryRound {
+  round: "genreMood" | "placeContext" | "artistTitle" | "artistDepth";
+  queries: string[];
+  limitPerQuery: number;
+  offsets?: number[];
+}
+
+export interface ArtistDepthTarget {
+  artistName: string;
+  requestedMinimum: number;
+  queries: string[];
+}
+
+export interface CandidateCoverageEvaluation {
+  artistDepthTargets: ArtistDepthTarget[];
+  missingSpecs: string[];
+}
+
+export interface ArtistDepthNote {
+  artistName: string;
+  requestedMinimum: number;
+  selectedCount: number;
+  reason: string;
+}
+
+export interface CurationValidationIssue {
+  type: "artist_not_allowed" | "duplicate_track" | "missing_spotify_uri" | "artist_depth_shortage";
+  trackId?: string;
+  artistName?: string;
+  reason: string;
+}
+
+export interface CurationValidationResult {
+  passed: boolean;
+  hardConstraintViolations: CurationValidationIssue[];
+  coverageWarnings: CurationValidationIssue[];
+  repairActions: CurationValidationIssue[];
+}
+
+export interface ProceduralCurationResult {
+  title: string;
+  description: string;
+  tracks: MappedTrack[];
+  targetDurationMinutes?: number;
+  artistDepthNotes?: ArtistDepthNote[];
+  validation?: CurationValidationResult;
 }
 
 /**

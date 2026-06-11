@@ -451,6 +451,105 @@ describe("SpotifyService", () => {
     });
   });
 
+  describe("procedural RAG search", () => {
+    let originalClientId: string | undefined;
+    let originalClientSecret: string | undefined;
+    let originalMockSpotify: string | undefined;
+
+    beforeEach(() => {
+      originalClientId = process.env.SPOTIFY_CLIENT_ID;
+      originalClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+      originalMockSpotify = process.env.MOCK_SPOTIFY;
+    });
+
+    afterEach(() => {
+      process.env.SPOTIFY_CLIENT_ID = originalClientId;
+      process.env.SPOTIFY_CLIENT_SECRET = originalClientSecret;
+      process.env.MOCK_SPOTIFY = originalMockSpotify;
+    });
+
+    it("should create mock candidates from query rounds when mock mode is enabled", async () => {
+      process.env.MOCK_SPOTIFY = "true";
+
+      const result = await spotifyService.searchTracksByQueryRounds(mockCookieStore, [
+        { round: "genreMood", queries: ["night drive"], limitPerQuery: 10, offsets: [0] },
+      ]);
+
+      expect(result.length).toBeGreaterThanOrEqual(3);
+      expect(result[0].uri).toContain("spotify:track:mock-rag-");
+      expect(result[0].title).toContain("Night Drive");
+    });
+
+    it("should search query rounds, apply limit and offset, and deduplicate tracks", async () => {
+      process.env.SPOTIFY_CLIENT_ID = "test-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "test-secret";
+      process.env.MOCK_SPOTIFY = "false";
+
+      const responseA = {
+        ok: true,
+        json: async () => ({
+          tracks: {
+            items: [
+              { id: "track-a", uri: "spotify:track:a", name: "Track A", artists: [{ name: "Artist A" }] },
+              { id: "track-dup", uri: "spotify:track:dup", name: "Dup", artists: [{ name: "Artist D" }] },
+            ],
+          },
+        }),
+      };
+      const responseB = {
+        ok: true,
+        json: async () => ({
+          tracks: {
+            items: [
+              { id: "track-dup", uri: "spotify:track:dup", name: "Dup", artists: [{ name: "Artist D" }] },
+              { id: "track-b", uri: "spotify:track:b", name: "Track B", artists: [{ name: "Artist B" }] },
+            ],
+          },
+        }),
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(responseA as unknown as Response)
+        .mockResolvedValueOnce(responseB as unknown as Response);
+
+      const result = await spotifyService.searchTracksByQueryRounds(mockCookieStore, [
+        { round: "genreMood", queries: ["night drive"], limitPerQuery: 25, offsets: [0, 10] },
+      ]);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect((fetchSpy.mock.calls[0][0] as string)).toContain("limit=10");
+      expect((fetchSpy.mock.calls[1][0] as string)).toContain("offset=10");
+      expect(result.map((track) => track.id)).toEqual(["track-a", "track-dup", "track-b"]);
+    });
+
+    it("should expand artist depth candidates through artist search queries", async () => {
+      process.env.SPOTIFY_CLIENT_ID = "test-id";
+      process.env.SPOTIFY_CLIENT_SECRET = "test-secret";
+      process.env.MOCK_SPOTIFY = "false";
+
+      const response = {
+        ok: true,
+        json: async () => ({
+          tracks: {
+            items: [
+              { id: "artist-track-1", uri: "spotify:track:artist-1", name: "Artist Track 1", artists: [{ name: "Artist A" }] },
+            ],
+          },
+        }),
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response as unknown as Response);
+
+      const result = await spotifyService.expandArtistDepthCandidates(mockCookieStore, [
+        { artistName: "Artist A", requestedMinimum: 3, queries: ['artist:"Artist A"'] },
+      ]);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect((fetchSpy.mock.calls[0][0] as string)).toContain(encodeURIComponent('artist:"Artist A"'));
+      expect(result[0].artistName).toBe("Artist A");
+    });
+  });
+
   describe("getCurrentUserId", () => {
     it("should return mock-user-id when in mock mode", async () => {
       process.env.MOCK_SPOTIFY = "true";

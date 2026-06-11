@@ -111,6 +111,112 @@
   - 현재 Spotify token 또는 developer credential은 준비되어 있지 않다.
   - Git 저장소가 초기화되어 있지 않아 GitFlow 검증은 현재 적용할 수 없다.
 
+## 현재 작업 계획 (2026-06-11 README 및 스펙 문서 보강)
+
+- **Requirement summary**: README.md와 Spotify API 스펙 문서를 현재 구현 상태 및 최신 Spotify 공식 문서 기준으로 점검하고, Deprecated API 제약과 Search API 기반 대체 흐름을 보강한다.
+- **Task type**: 문서 점검 및 보강
+- **Selected AI-DLC execution mode**: Fast Track
+- **Reason for selected mode**: 소스 코드, API 계약, DB 스키마, 배포 구성 변경 없이 문서 정확도만 높이는 제한 범위 작업이다.
+- **Required context files**:
+  - `AGENTS.md`
+  - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+  - `aidlc-rules/aws-aidlc-rule-details/common/process-overview.md`
+  - `aidlc-rules/aws-aidlc-rule-details/common/session-continuity.md`
+  - `aidlc-rules/aws-aidlc-rule-details/common/content-validation.md`
+  - `aidlc-rules/aws-aidlc-rule-details/common/question-format-guide.md`
+  - `README.md`
+  - `docs/spotify-api-spec.md`
+  - `src/server/services/spotify-service.ts`
+  - `src/server/services/llm-client.ts`
+  - `app/api/curate/route.ts`
+  - `app/api/spotify/playlists/route.ts`
+- **Expected files to change**:
+  - `aidlc-docs/aidlc-state.md`
+  - `aidlc-docs/audit.md`
+  - `README.md`
+  - `docs/spotify-api-spec.md`
+- **Files or directories that must not change**:
+  - `aidlc-rules/`
+  - `AGENTS.md`
+  - `src/`
+  - `app/`
+- **Validation commands**:
+  - `npx.cmd markdownlint-cli2 "README.md" "docs/**/*.md" "aidlc-docs/**/*.md"`
+  - `git diff --check`
+- **Risks or assumptions**:
+  - Spotify Web API 정책은 변경될 수 있으므로, 2026-06-11 기준 공식 문서 확인 결과를 명시한다.
+  - README의 테스트 개수는 향후 테스트 추가에 따라 바뀔 수 있으므로 고정 숫자 대신 검증 명령과 최근 확인 결과를 중심으로 기술한다.
+- **실행 단계**: Workspace 확인, Requirements Analysis minimal, Workflow Planning minimal, 문서 수정, Markdown 검증, 완료 보고
+- **생략 단계 및 사유**: User Stories, Application Design, Units Generation, Functional Design, NFR Requirements, NFR Design, Infrastructure Design은 사용자 동작/API 계약/도메인/인프라 변경이 없는 문서 보강 작업이므로 생략한다.
+
+## 현재 작업 계획 (2026-06-11 절차형 RAG 큐레이션 설계 보강)
+
+- **Requirement summary**: RAG-Based Music Curation 인셉션을 장르/감성 SPEC, 장소/청취 맥락 SPEC, 아티스트/곡 SPEC으로 분해하고, 내부 멀티턴 검색/확장 및 아티스트별 최소 3곡 확보 정책을 갖도록 보강한다.
+- **Task type**: 인셉션 요구사항 및 아키텍처 설계 보강
+- **Selected AI-DLC execution mode**: Design Track
+- **Reason for selected mode**: 큐레이션 도메인 규칙, LLM 호출 절차, Spotify Search 후보 확장 정책, 최종 플레이리스트 구성 계약을 바꾸는 설계 결정이 포함된다.
+- **Required context files**:
+  - `AGENTS.md`
+  - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+  - `aidlc-docs/aidlc-state.md`
+  - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+  - `aidlc-docs/inception/application-design/rag-architecture.md`
+  - `aidlc-docs/construction/plans/u-012-rag-music-curation-implementation-plan.md`
+- **Expected files to change**:
+  - `aidlc-docs/aidlc-state.md`
+  - `aidlc-docs/audit.md`
+  - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+  - `aidlc-docs/inception/application-design/rag-architecture.md`
+  - `aidlc-docs/construction/plans/u-012-rag-music-curation-implementation-plan.md`
+- **Files or directories that must not change**:
+  - `aidlc-rules/`
+  - `AGENTS.md`
+  - `src/`
+  - `app/`
+- **Validation commands**:
+  - `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`
+  - `git diff --check`
+- **Risks or assumptions**:
+  - 멀티턴은 우선 사용자 추가 질문이 아닌 단일 요청 내부의 LLM/Search 반복 호출로 정의한다.
+  - 2~3시간 플레이리스트는 긴 응답과 API 비용을 만들 수 있으므로 후보군 확장, 중복 제거, 최종 트랙 수 상한을 설계에 둔다.
+  - 한 아티스트당 최소 3곡은 목표 규칙이며, Spotify 검색 결과가 부족하면 가능한 곡 수만 포함하고 부족 사유를 메타데이터로 남긴다.
+- **실행 단계**: Workspace 확인, Requirements Analysis standard, Workflow Planning, Application Design 보강, 구현 계획 갱신, Markdown 검증, 완료 보고
+- **생략 단계 및 사유**: User Stories는 기존 사용자 목표의 세분화로 충분해 생략한다. Units Generation은 신규 작업 단위 분해 없이 U-012 구현 계획을 보강하므로 생략한다. NFR Design, Infrastructure Design, Code Generation, Build and Test는 이번 턴이 인셉션/계획 문서 보강이고 소스 변경이 없으므로 생략한다.
+
+## 현재 작업 계획 (2026-06-11 Spotify OpenAPI Search 지식 정리)
+
+- **Requirement summary**: Spotify 공식 OpenAPI 스키마를 읽고 Search API 중심 참조 문서를 새로 작성한 뒤, RAG 인셉션에 활용할 수 있는 API 후보를 기존 Spotify API 스펙 문서에 선별 반영한다.
+- **Task type**: 외부 API 스키마 분석 및 문서/인셉션 스펙 보강
+- **Selected AI-DLC execution mode**: Design Track
+- **Reason for selected mode**: Search API의 query/filter/limit/offset 제약과 주변 API의 Deprecated/정책 상태가 RAG 후보 확보 전략 및 구현 계획에 직접 영향을 준다.
+- **Required context files**:
+  - `AGENTS.md`
+  - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+  - `aidlc-docs/aidlc-state.md`
+  - `docs/spotify-api-spec.md`
+  - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+  - `aidlc-docs/inception/application-design/rag-architecture.md`
+  - `https://developer.spotify.com/reference/web-api/open-api-schema.yaml`
+- **Expected files to change**:
+  - `aidlc-docs/aidlc-state.md`
+  - `aidlc-docs/audit.md`
+  - `docs/spotify-open-api-search-reference.md` [NEW]
+  - `docs/spotify-api-spec.md`
+- **Files or directories that must not change**:
+  - `aidlc-rules/`
+  - `AGENTS.md`
+  - `src/`
+  - `app/`
+- **Validation commands**:
+  - `npx.cmd markdownlint-cli2 "docs/**/*.md" "aidlc-docs/**/*.md"`
+  - `git diff --check`
+- **Risks or assumptions**:
+  - 공식 스키마는 2026-06-11에 내려받은 내용을 기준으로 정리한다.
+  - Search API `limit` 최대 10 제약 때문에 긴 플레이리스트 후보군 확보는 다중 query와 offset 페이지 확장을 전제로 한다.
+  - `x-spotify-policy-list`에 MachineLearning 정책이 연결된 API는 외부 LLM 컨텍스트 사용 시 최소 메타데이터 전달과 별도 정책 검토가 필요하다.
+- **실행 단계**: Workspace 확인, Requirements Analysis standard, Workflow Planning, API 참조 문서 생성, 인셉션 적용 후보 반영, Markdown 검증, 완료 보고
+- **생략 단계 및 사유**: User Stories와 Units Generation은 사용자 흐름과 작업 단위가 바뀌지 않아 생략한다. Code Generation과 Build and Test는 소스 코드 변경 없이 문서와 설계 지식만 보강하므로 생략한다.
+
 ## 워크스페이스 상태
 
 - **Existing Code**: No
@@ -183,14 +289,61 @@
 - [x] U-010: Console Logging Simplification - COMPLETE
   - **상태**: 백엔드 API 요청들의 비대한 로그를 간결한 1줄짜리 흐름 로그로 간소화 완료 및 빌드/테스트/마크다운 린트 검증 완료
 - [x] U-011: RAG-Based Music Curation Inception & Design - COMPLETE
-  - **상태**: 스포티파이 Recommendations/Audio Features API 연동 및 2단계 RAG 큐레이션 모델 기획/요구사항 정의/아키텍처 설계 완료
-- [ ] U-012: RAG-Based Music Curation Implementation - IN_PROGRESS
-  - **상태**: RAG 기반 음악 큐레이션(Recommendations/Audio Features API 및 2단계 LLM 파이프라인) 실제 기능 구현 및 단위/통합 테스트 진행 중
+  - **상태**: 스포티파이 Search API 기반 RAG 큐레이션 모델 기획/요구사항 정의/아키텍처 설계 완료. 2026-06-11에 절차형 SPEC 분해 및 내부 멀티턴 검색 흐름으로 보강
+- [x] U-012: RAG-Based Music Curation Implementation - COMPLETE
+  - **상태**: RAG 기반 음악 큐레이션(Search API, 3축 SPEC 분해, 내부 멀티턴 LLM/Search 파이프라인) 실제 기능 구현 및 단위/통합 테스트 진행 중
+- [x] U-013: README and Spotify API Spec Refresh - COMPLETE
+  - **상태**: README와 Spotify API 스펙 문서에 Deprecated API 제약, Search API 기반 대체 전략, 현재 구현 기능, 검증 명령을 보강하고 Markdown lint 및 diff 공백 검증을 통과
+- [x] U-014: Procedural RAG Curation Inception Refinement - COMPLETE
+  - **상태**: RAG 요구사항, 아키텍처, U-012 구현 계획을 3축 SPEC 분해, 내부 멀티턴 검색, 아티스트별 최소 3곡 목표, 2~3시간 플레이리스트 허용 정책으로 보강하고 Markdown lint 및 diff 공백 검증을 통과
+- [x] U-015: Spotify OpenAPI Search Knowledge Extraction - COMPLETE
+  - **상태**: Spotify 공식 OpenAPI 스키마를 기반으로 Search API 참조 문서를 새로 작성하고, RAG 인셉션 활용 API 선별 내용을 Spotify API 스펙 문서에 반영했으며 Markdown lint 및 diff 공백 검증을 통과
+- [x] U-016: Curation Progress Visibility - COMPLETE
+  - **상태**: `/api/curate`에 POST 기반 NDJSON progress stream을 추가하고, 홈 화면에서 SPEC 분해, 검색 계획, 후보 수집, 후보 평가, 아티스트 depth 확장, 최종 큐레이션 단계를 진행률과 누적 메시지로 표시하도록 구현 완료. 타입체크, 테스트, 변경 파일 ESLint, Markdown lint, diff 공백 검증을 통과
+- [x] U-017: Post-generation Validation Requirements - COMPLETE
+  - **상태**: RAG 요구사항과 아키텍처에 `generate -> validate -> repair -> final` 흐름, 라인업 제한형 allowlist 하드 제약, 생성 후 검증/수리 정책을 반영 완료
+- [x] U-018: Lineup Validation and Repair Implementation - COMPLETE
+  - **상태**: 라인업 제한형 큐레이션에서 `allowedArtists` 추출, 아티스트 검색 우선 계획, 후보군 allowlist 필터링, 아티스트 depth target 제한, 최종 결과 검증/수리 메타데이터를 구현하고 테스트 검증을 통과
 
 ## 현재 상태
 
 - **Lifecycle Phase**: CONSTRUCTION
 - **Current Stage**: Construction
-- **Next Stage**: Build and Test
-- **Status**: RAG-based music curation implementation and verification is in progress.
+- **Next Stage**: Maintenance and Expansion
+- **Status**: RAG-based music curation implementation, curation progress visibility, post-generation validation requirements, and lineup validation/repair implementation completed on 2026-06-11. `/api/curate` now uses 3-axis SPEC extraction, internal multi-turn LLM/Search planning, Spotify Search candidate collection, artist depth expansion, candidate coverage evaluation, final candidate-grounded curation, optional NDJSON progress streaming, and strict lineup allowlist filtering/repair for festival prompts.
 
+## 현재 작업 계획 (2026-06-11 큐레이션 진행 상태 표시)
+
+- **Requirement summary**: AI 멀티턴 큐레이션 중 사용자가 대기 상태를 이해할 수 있도록 `/api/curate`의 단계별 진행 이벤트와 홈 화면 진행 메시지 UI를 추가한다.
+- **Task type**: 사용자 대기 경험 개선, API 응답 모드 확장, 프론트 상태 표시 보강
+- **Selected AI-DLC execution mode**: Standard Track
+- **Reason for selected mode**: 기존 route handler와 홈 화면, 테스트를 함께 변경하며 사용자에게 보이는 동작을 확장하지만 DB, 인증, 배포, 신규 인프라 변경은 없다.
+- **Required context files**:
+  - `AGENTS.md`
+  - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+  - `aidlc-docs/aidlc-state.md`
+  - `app/api/curate/route.ts`
+  - `app/api/curate/route.test.ts`
+  - `src/features/home/home-page.tsx`
+  - `src/features/home/home-page.test.tsx`
+- **Expected files to change**:
+  - `app/api/curate/route.ts`
+  - `app/api/curate/route.test.ts`
+  - `src/features/home/home-page.tsx`
+  - `src/features/home/home-page.test.tsx`
+  - `aidlc-docs/audit.md`
+  - `aidlc-docs/aidlc-state.md`
+- **Files or directories that must not change**:
+  - `aidlc-rules/`
+  - `AGENTS.md`
+- **Validation commands**:
+  - `npm.cmd run typecheck`
+  - `npm.cmd test`
+  - `npx.cmd markdownlint-cli2 "docs/**/*.md" "aidlc-docs/**/*.md"`
+  - `git diff --check`
+- **Risks or assumptions**:
+  - POST 기반 진행 이벤트는 `EventSource` 대신 `fetch`의 `ReadableStream`을 사용한다.
+  - 스트리밍을 지원하지 않는 환경에서는 기존 JSON 파싱 경로 또는 fallback 메시지로 복원력을 유지한다.
+  - 진행률 숫자는 실제 시간 예측이 아니라 완료된 절차 단계 비율을 나타낸다.
+- **실행 단계**: Workspace 확인, Requirements Analysis standard, Workflow Planning standard, Code Generation, Build and Test
+- **생략 단계 및 사유**: User Stories, Application Design, Units Generation, NFR Requirements, NFR Design, Infrastructure Design은 기존 화면과 API 경계 안에서 대기 상태 표시를 보강하는 작업이므로 생략한다.
