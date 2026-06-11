@@ -4,6 +4,8 @@
 
 사용자의 최근 재생 음악 취향과 자연어 프롬프트를 분석하여 맞춤형 AI 플레이리스트를 추천하고, 이를 실제 Spotify 계정에 플레이리스트로 연동 및 저장할 수 있는 Next.js 기반의 무상태(Stateless) MVP 웹 애플리케이션입니다.
 
+2026-06-11 기준 Spotify 공식 문서에서 `Recommendations` 및 `Audio Features` 엔드포인트가 Deprecated로 표시되고, 2024-11-27 이후 신규/개발 모드 앱의 접근 제한 대상에 포함되어 있습니다. 따라서 이 프로젝트의 현재 MVP는 해당 API에 직접 의존하지 않고, `Recently Played`와 `Search` API 및 LLM 큐레이션을 조합하는 흐름을 기본 전략으로 둡니다.
+
 본 프로젝트는 AI-DLC(AI Software Development Life Cycle) 사양에 의거하여 설계, 구현, 검증이 진행되었습니다.
 
 ---
@@ -24,16 +26,28 @@
 ### 3. LLM Curation Engine (AI 추천)
 
 - 사용자 자연어 프롬프트와 정제된 최근 재생 목록을 컨텍스트로 결합하여 맞춤 큐레이션 생성.
-- OpenAI / Gemini API 연동 및 10초 타임아웃(Abort) 제어.
+- Gemini / OpenAI / OpenRouter 호환 API 연동 및 LLM 호출 타임아웃(Abort) 제어.
 - JSON 응답 파싱 에러 시 1회 자동 재시도 및 실패 시 디폴트 폴백 데이터 안정성 확보.
 - API Key 미설정 및 로컬 개발용 정적 Mock LLM 데이터 시뮬레이터 내장.
 
-### 4. Spotify Search 트랙 매핑
+### 4. Spotify Search 기반 트랙 매핑
 
 - AI 추천 곡명(텍스트) 정보를 Spotify Search API (`GET /v1/search`)로 병렬 호출(`Promise.all`)하여 실제 Spotify URI 획득.
 - 각 곡당 개별 5초 타임아웃 적용 및 매핑 에러 시 해당 곡 자동 스킵 복원력 보장.
 - 최종 매핑에 성공한 트랙이 0개인 경우에만 명시적 오류 예외 처리.
 - 로컬 모드를 위한 100% Mock Search(가짜 URI 생성 매핑) 지원.
+
+### 5. 사용자 프로필 및 플레이리스트 저장
+
+- 현재 로그인한 Spotify 사용자 프로필(`GET /v1/me`)을 조회하여 화면에 표시.
+- 큐레이션 결과를 새 비공개 플레이리스트로 생성하고, `POST /v1/playlists/{playlist_id}/items`로 트랙 URI를 추가.
+- 401 응답 시 세션 리프레시 후 1회 재시도하는 공통 복원력 흐름 적용.
+
+### 6. Deprecated API 대응
+
+- `Recommendations` 및 `Audio Features`는 참조 스펙 문서에 제약과 상태를 기록하되, 신규 MVP의 기본 실행 경로에서는 사용하지 않습니다.
+- 실존 트랙 보장은 Spotify Search API 매핑 결과의 `id`와 `uri`를 기준으로 처리합니다.
+- RAG 고도화 작업은 `aidlc-docs/inception/requirements/rag-curation-requirements.md`와 `aidlc-docs/inception/application-design/rag-architecture.md`에 별도로 기록되어 있습니다.
 
 ---
 
@@ -83,6 +97,21 @@ LLM_API_KEY=your_openai_or_gemini_api_key
 > `SESSION_SECRET`은 세션 쿠키의 서명을 위한 비밀 키로, 32바이트 이상의 임의의 보안 문자열이어야 합니다.
 > `LLM_API_KEY` 및 Spotify 자격 증명이 누락된 경우 애플리케이션은 로컬 시뮬레이션 모드(Mock 모드)로 동작하여 정상 빌드 및 실행을 보장합니다.
 
+선택 환경 변수:
+
+```env
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-2.5-flash
+LLM_API_BASE_URL=
+MOCK_LLM=false
+MOCK_SPOTIFY=false
+```
+
+- `LLM_PROVIDER`: `gemini`, `openai`, `openrouter`를 지원합니다.
+- `LLM_MODEL`: provider별 모델명을 지정합니다. 미지정 시 provider별 기본값을 사용합니다.
+- `LLM_API_BASE_URL`: OpenAI 호환 커스텀 엔드포인트가 필요할 때 사용합니다.
+- `MOCK_LLM`, `MOCK_SPOTIFY`: 로컬 시뮬레이션을 강제로 켜고 싶을 때 `true`로 지정합니다.
+
 ### 2. 의존성 패키지 설치
 
 ```bash
@@ -111,16 +140,22 @@ npm run build
 npm run typecheck
 ```
 
-### 2. 테스트 스위트 구동 (총 41개 단위/통합 테스트)
+### 2. 테스트 스위트 구동
 
 ```bash
 npm test
 ```
 
-### 3. AI-DLC 문서 마크다운 린트 검사
+### 3. Markdown 문서 린트 검사
 
 ```bash
-npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"
+npx markdownlint-cli2 "README.md" "docs/**/*.md" "aidlc-docs/**/*.md"
+```
+
+### 4. 전체 변경 공백 검증
+
+```bash
+git diff --check
 ```
 
 ---
@@ -147,17 +182,21 @@ npx markdownlint-cli2 "README.md" "aidlc-docs/**/*.md"
 
 ### 2단계: Construction (상세 설계 및 구현)
 
-각 작업 단위(`U-001`부터 `U-005`까지)별로 구체적인 설계를 세우고 구현을 진행하는 단계입니다.
+각 작업 단위(`U-001`부터 `U-005`까지)별로 구체적인 설계를 세우고 구현을 진행하는 단계입니다. 이후 유지보수 및 확장 작업(`U-006` 이후)은 `aidlc-state.md`와 `audit.md`에 누적 기록합니다.
 
 - **상세 기능/비기능 설계 및 코드 생성 계획** (`aidlc-docs/construction/plans/`)
   - 각 유닛의 작업 착수 전에 설계 사양을 정의하고 계획을 기술한 문서들입니다. (예: [U-002 코드 생성 계획](aidlc-docs/construction/plans/u-002-spotify-auth-session-code-generation-plan.md))
 - **유닛별 결과 산출물** (`aidlc-docs/construction/u-*/`)
   - 각 단위 작업마다 실제로 도출된 상세 비기능 요구사항 분석 및 기능 설계 결과가 담겨 있습니다. (예: `u-002-spotify-auth-session/` 내의 설계 문서들)
+- **RAG 큐레이션 고도화 산출물**
+  - [rag-curation-requirements.md](aidlc-docs/inception/requirements/rag-curation-requirements.md): Deprecated API 제약을 고려한 Search-Query RAG 요구사항입니다.
+  - [rag-architecture.md](aidlc-docs/inception/application-design/rag-architecture.md): Search API와 LLM을 조합하는 후보 검색 및 최종 선별 흐름 설계입니다.
+  - [u-012-rag-music-curation-implementation-plan.md](aidlc-docs/construction/plans/u-012-rag-music-curation-implementation-plan.md): Search-Query RAG 구현 계획입니다.
 
 ### 3단계: Verification & Audit (최종 검증 및 상태 관리)
 
 - **빌드 및 테스트 결과 요약** ([build-and-test-summary.md](aidlc-docs/construction/build-and-test/build-and-test-summary.md))
-  - 개발 완료 후 41개의 모든 단위/통합 테스트와 빌드 검증을 최종적으로 수행하여 품질 목표를 통과했음을 증명하는 보고서입니다.
+  - 개발 완료 후 단위/통합 테스트와 빌드 검증을 최종적으로 수행하여 품질 목표를 통과했음을 증명하는 보고서입니다.
 - **진행 상태 관리** ([aidlc-state.md](aidlc-docs/aidlc-state.md))
   - 유닛별로 현재 단계(Functional Design, Code Gen 등)의 진행 및 완료 상태를 투명하게 관리하는 문서입니다.
 - **의사결정 및 감사 기록** ([audit.md](aidlc-docs/audit.md))

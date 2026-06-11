@@ -1,6 +1,6 @@
 # AI-DLC 감사 로그
 
-<!-- markdownlint-disable MD013 MD024 -->
+<!-- markdownlint-disable MD013 MD024 MD031 MD040 -->
 
 ## Workspace Detection - Initial Request
 
@@ -1167,5 +1167,619 @@ U-002 NFR 요구사항 계획과 확인 질문을 작성했다. 사용자가 모
 7. **Files or directories that must not change**: `src/`, `app/` (인셉션 단계이므로 소스 코드 변경 금지)
 8. **Validation commands**: `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`
 9. **Risks or assumptions**: Spotify Recommendations API가 요구하는 시드(seed_artists, seed_genres, seed_tracks) 파라미터 최대 5개 제한 조건을 분석하여 유저 재생 이력 및 프롬프트로부터 어떻게 시드를 추출해 낼지 세밀한 아키텍처 대안 수립이 필요하다.
+
+---
+
+## Construction - Lineup Validation and Repair Implementation (Standard Track Plan)
+
+**Timestamp**: 2026-06-11T13:10:00+09:00
+**User Input**: "좋았어 이제 요구사항에 따른 개발을 진행해"
+**AI Response**: "생성 후 검증/수리 요구사항에 따라 라인업 제한형 큐레이션의 allowedArtists 추출, 후보군 필터링, 최종 결과 검증/수리, 관련 테스트를 구현하는 Standard Track 계획을 수립했습니다."
+**Context**: CONSTRUCTION - Lineup Validation and Repair Implementation (Standard Track)
+
+### Standard Track 계획
+
+1. **Requirement summary**:
+   - 페스티벌/라인업 프롬프트에서 라인업 아티스트를 `allowedArtists`로 추출한다.
+   - 라인업 제한형 모드에서는 Spotify 후보군과 최종 결과에서 라인업 밖 아티스트를 제거한다.
+   - 생성 후 검증/수리 결과를 메타데이터로 남긴다.
+   - 아티스트 depth 확장은 allowed artist에만 적용한다.
+2. **Task type**: 기능 구현 및 테스트 보강
+3. **Selected AI-DLC execution mode**: Standard Track
+4. **Reason for selected mode**: 기존 `domain`, `LlmClient`, `/api/curate`, route/service 테스트를 함께 변경하지만 신규 DB/인프라/API endpoint 변경은 없다.
+5. **Required context files**:
+   - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+   - `aidlc-docs/inception/application-design/rag-architecture.md`
+   - `aidlc-docs/construction/evaluations/2026-pentaport-playlist-evaluation.md`
+   - `src/domain/curation.ts`
+   - `src/server/services/llm-client.ts`
+   - `app/api/curate/route.ts`
+   - 관련 테스트 파일
+6. **Expected files to change**:
+   - `src/domain/curation.ts`
+   - `src/server/services/llm-client.ts`
+   - `src/server/services/llm-client.test.ts`
+   - `app/api/curate/route.ts`
+   - `app/api/curate/route.test.ts`
+   - `aidlc-docs/audit.md`
+   - `aidlc-docs/aidlc-state.md`
+7. **Files or directories that must not change**:
+   - `aidlc-rules/`
+   - `AGENTS.md`
+8. **Validation commands**:
+   - `npm.cmd run typecheck`
+   - `npm.cmd test`
+   - `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`
+   - `git diff --check`
+9. **Risks or assumptions**:
+   - 한글/영문 alias 전체 자동 매칭은 후속 고도화 대상으로 남기고, 이번 구현은 명시 라인업명과 Spotify artistName의 정규화 포함 관계 매칭을 우선한다.
+   - 검색 결과가 모두 필터링되면 라인업 밖 아티스트를 대체로 섞지 않고 fallback 또는 축소 결과를 반환한다.
+
+---
+
+## Construction - Lineup Validation and Repair Implementation Complete
+
+**Timestamp**: 2026-06-11T13:35:00+09:00
+**User Input**: "좋았어 이제 요구사항에 따른 개발을 진행해"
+**AI Response**: "라인업 제한형 큐레이션의 allowedArtists 추출, 아티스트 검색 우선 계획, 후보군 필터링, 최종 결과 검증/수리 메타데이터, 테스트를 구현했습니다."
+**Context**: CONSTRUCTION - Lineup Validation and Repair Implementation (Standard Track Completion)
+
+### 구현 결과
+
+- `CurationSpecs`에 `constraints`를 추가해 `lineup` 모드, `allowedArtists`, `allowedArtistAliases`, `lineupConstraint`를 표현할 수 있게 했다.
+- `ProceduralCurationResult`에 `validation` 메타데이터를 추가해 하드 제약 위반, 커버리지 경고, repair action을 반환할 수 있게 했다.
+- `LlmClient.extractCurationSpecs()`가 페스티벌/라인업 프롬프트에서 명시 라인업 블록을 deterministic하게 추출해 strict allowlist로 승격한다.
+- `LlmClient.createSearchPlan()`은 strict lineup 모드에서 열린 장르/감성 검색 대신 `artist:"..."` 검색을 우선한다.
+- `LlmClient.evaluateCandidateCoverage()`는 strict lineup 모드에서 후보군에 섞인 라인업 밖 아티스트를 depth target으로 승격하지 않는다.
+- `/api/curate`는 후보군 수집 후, 아티스트 depth 확장 후, 최종 큐레이션 후에 라인업 allowlist 검증을 적용한다.
+- 최종 결과에 라인업 밖 아티스트, 중복 트랙, Spotify URI 누락 트랙이 있으면 제거하고 검증 메타데이터에 사유를 남긴다.
+
+### 검증 결과
+
+- `npm.cmd run typecheck`: 성공
+- `npm.cmd test`: 성공 (8개 test file, 65개 test)
+- `npx.cmd eslint app/api/curate/route.ts app/api/curate/route.test.ts src/domain/curation.ts src/server/services/llm-client.ts src/server/services/llm-client.test.ts`: 성공
+- `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`: 성공 (73개 Markdown 파일, 오류 0건)
+- `git diff --check`: 성공 (공백 오류 0건, LF/CRLF 경고만 출력)
+
+---
+
+## Inception - Post-generation Validation Requirements (Design Track Plan)
+
+**Timestamp**: 2026-06-11T12:45:00+09:00
+**User Input**: "요구사항 부터 반영해봐"
+**AI Response**: "라인업 제한형 페스티벌 큐레이션과 생성 후 검증/수리 요구사항을 기존 RAG 요구사항 및 아키텍처 문서에 반영하는 Design Track 계획을 수립했습니다."
+**Context**: INCEPTION - Post-generation Validation Requirements (Design Track)
+
+### Design Track 계획
+
+1. **Requirement summary**:
+   - 생성된 큐레이션 결과를 그대로 저장하지 않고, 하드 제약 검증, 커버리지 검증, 품질 검증을 거쳐 필요 시 자동 수리하는 요구사항을 추가한다.
+   - 페스티벌/라인업 프롬프트에서는 라인업 아티스트 allowlist를 최상위 하드 제약으로 정의한다.
+   - 검증 실패 시 `repair` 또는 `fallback` 정책과 사용자에게 설명할 메타데이터 요구사항을 정의한다.
+2. **Task type**: 요구사항 및 아키텍처 설계 보강
+3. **Selected AI-DLC execution mode**: Design Track
+4. **Reason for selected mode**: 생성 후 검증 단계는 도메인 규칙, API 응답 메타데이터, 후보군 경계, 자동 수리 정책에 영향을 주는 설계 결정이다. 이번 작업은 문서 반영만 수행한다.
+5. **Required context files**:
+   - `AGENTS.md`
+   - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+   - `aidlc-docs/aidlc-state.md`
+   - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+   - `aidlc-docs/inception/application-design/rag-architecture.md`
+   - `aidlc-docs/construction/evaluations/2026-pentaport-playlist-evaluation.md`
+6. **Expected files to change**:
+   - `aidlc-docs/audit.md`
+   - `aidlc-docs/aidlc-state.md`
+   - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+   - `aidlc-docs/inception/application-design/rag-architecture.md`
+7. **Files or directories that must not change**:
+   - `aidlc-rules/`
+   - `AGENTS.md`
+   - `src/`
+   - `app/`
+8. **Validation commands**:
+   - `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`
+   - `git diff --check`
+9. **Risks or assumptions**:
+   - 실제 구현은 후속 `U-017` 범위로 남기고, 이번 단계에서는 요구사항과 아키텍처만 보강한다.
+   - 라인업 정보는 사용자 프롬프트에 명시된 아티스트 목록을 신뢰 가능한 allowlist로 본다.
+
+---
+
+## Inception - Post-generation Validation Requirements Complete
+
+**Timestamp**: 2026-06-11T13:00:00+09:00
+**User Input**: "요구사항 부터 반영해봐"
+**AI Response**: "RAG 요구사항과 아키텍처에 생성 후 검증/자동 수리 요구사항을 반영했습니다. 라인업 제한형 페스티벌 큐레이션에서는 allowedArtists를 하드 제약으로 두고, 생성 결과를 validate/repair/final 게이트로 통과시키도록 정의했습니다."
+**Context**: INCEPTION - Post-generation Validation Requirements (Design Track Completion)
+
+### 반영 결과
+
+- `rag-curation-requirements.md`에 `FR-6: 생성 후 검증 및 자동 수리`를 추가했다.
+- `rag-curation-requirements.md`에 `FR-7: 라인업 제한형 페스티벌 큐레이션`을 추가했다.
+- `NFR-2`에 결정적 규칙 기반 검증 우선, 진행 상태 표시 요구사항을 보강했다.
+- `rag-architecture.md`에 검증기/수리기 역할, sequence diagram의 validate/repair 흐름, 검증 응답 스키마, 라인업 제한형 큐레이션 계약을 추가했다.
+- `aidlc-state.md`에 `U-017: Post-generation Validation Requirements` 완료 상태를 기록했다.
+
+### 검증 결과
+
+- `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`: 성공 (73개 Markdown 파일, 오류 0건)
+- `git diff --check`: 성공 (공백 오류 0건, LF/CRLF 경고만 출력)
+
+---
+
+## Evaluation - Pentaport Playlist Output Review (Fast Track Plan)
+
+**Timestamp**: 2026-06-11T12:20:00+09:00
+**User Input**: "잘 만들어는 졌는데 상관없는 아티스트가 생긴것같아서
+```
+너는 음악 페스티벌 예습 플레이리스트 큐레이터다.
+
+목표:
+2026 인천 펜타포트 락 페스티벌 전체 라인업을 기준으로, 날짜 구분 없이 예습용 통합 플레이리스트를 구성해라.
+단순히 유명곡만 나열하지 말고, 실제 페스티벌 현장에서 즐기기 좋은 흐름으로 플레이리스트를 설계해라.
+
+행사 정보:
+
+행사명: 2026 인천 펜타포트 락 페스티벌
+기간: 2026년 7월 31일 금요일 ~ 2026년 8월 2일 일요일
+장소: 송도달빛축제공원
+목적: 공연 전 예습, 입문, 취향 확장, 현장 몰입
+
+현재 반영할 라인업:
+
+[해외 / 주요 라인업]
+
+Khruangbin
+Massive Attack
+Pixies
+The Jesus and Mary Chain
+Elizabeth Fraser
+Original Love
+Turtle Island
+The Lemon Twigs
+never young beach
+MONO NO AWARE
+Isyana Sarasvati
+betcover!!
+
+[국내 / 주요 라인업]
+
+HYUKOH
+실리카겔
+쏜애플
+이승윤
+노이즈가든
+The Volunteers
+술탄오브더디스코
+이날치
+권진아
+장필순
+브로큰 발렌타인
+더 긱스
+세이수미
+나상현씨밴드
+다브다
+터치드
+QWER
+더 픽스
+머드 더 스튜던트
+송동예
+The Poles
+드래곤포니
+리도어
+윤마치
+키라라
+백현진
+봉제인간
+신인류
+극동아시아타이거즈
+baan
+잭킹콩
+초록불꽃소년단
+컨파인드 화이트
+팻햄스터 & 캉뉴
+할로우 잰
+심아일랜드
+내 취향 반영:
+
+쏜애플처럼 어둡고 밀도 있는 밴드 사운드를 좋아한다.
+몽환적이거나 긴장감 있는 사운드를 선호한다.
+단순히 밝고 청량한 곡보다 감정선, 폭발력, 기타 사운드, 밴드 합이 살아있는 곡을 좋아한다.
+그래도 페스티벌 예습이 목적이므로 내 취향만 고집하지 말고, 현장에서 즐기기 좋은 곡도 포함해라.
+```
+
+라고 프롬프트를 넣었는데
+생성된건 `https://open.spotify.com/playlist/7s3n8QKyDUVN1O6TvLurSd`
+이 플레이리스트 이야
+어떻게 생각하니 먼저 평가해봐
+문서로 남기면서 평가해봐"
+**AI Response**: "Spotify playlist URL의 트랙 목록 직접 조회가 제한되어, 사용자 제공 프롬프트와 현재 절차형 RAG 구현 구조를 기준으로 라인업 밖 아티스트가 발생할 수 있는 원인과 품질 평가를 문서화하는 Fast Track 계획을 수립했습니다."
+**Context**: EVALUATION - Pentaport Playlist Output Review (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**:
+   - 2026 인천 펜타포트 락 페스티벌 예습용 플레이리스트 생성 결과를 사용자 프롬프트 의도와 현재 구현 구조 기준으로 평가한다.
+   - 라인업 밖 아티스트가 생긴 원인을 문서로 남긴다.
+   - 다음 구현 개선 방향을 도출한다.
+2. **Task type**: 생성 결과 평가 및 문서화
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: 코드 변경 없이 결과 품질과 구현 리스크를 평가하는 문서 작업이며, 새 API 계약 또는 DB/인프라 변경이 없다.
+5. **Required context files**:
+   - `AGENTS.md`
+   - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+   - `aidlc-docs/aidlc-state.md`
+   - `src/server/services/llm-client.ts`
+   - `src/server/services/spotify-service.ts`
+   - `app/api/curate/route.ts`
+6. **Expected files to change**:
+   - `aidlc-docs/audit.md`
+   - `aidlc-docs/construction/evaluations/2026-pentaport-playlist-evaluation.md` [NEW]
+7. **Files or directories that must not change**:
+   - `aidlc-rules/`
+   - `AGENTS.md`
+   - `src/`
+   - `app/`
+8. **Validation commands**:
+   - `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`
+   - `git diff --check`
+9. **Risks or assumptions**:
+   - Spotify public playlist URL의 트랙 목록은 현재 세션에서 직접 조회하지 못했으므로, 실제 곡별 판정은 사용자가 관찰한 "상관없는 아티스트" 발생 사실과 구현 구조를 기준으로 평가한다.
+   - 2026 펜타포트 라인업은 사용자 프롬프트에 제공된 목록을 기준 allowlist로 본다.
+
+---
+
+## Evaluation - Pentaport Playlist Output Review Complete
+
+**Timestamp**: 2026-06-11T12:35:00+09:00
+**User Input**: "잘 만들어는 졌는데 상관없는 아티스트가 생긴것같아서 ... 생성된건 `https://open.spotify.com/playlist/7s3n8QKyDUVN1O6TvLurSd` 이 플레이리스트 이야 어떻게 생각하니 먼저 평가해봐 문서로 남기면서 평가해봐"
+**AI Response**: "Spotify playlist 트랙 목록 직접 조회 한계를 명시하고, 사용자 프롬프트와 현재 구현 구조를 기준으로 라인업 밖 아티스트가 발생할 수 있는 원인, 품질 판정, 개선 방향을 문서화했습니다."
+**Context**: EVALUATION - Pentaport Playlist Output Review (Fast Track Completion)
+
+### 평가 결과
+
+- 신규 문서 `aidlc-docs/construction/evaluations/2026-pentaport-playlist-evaluation.md`를 작성했다.
+- 핵심 결론은 "분위기 기반 RAG 플레이리스트로는 그럴듯할 수 있으나, 특정 페스티벌 라인업 예습 playlist로는 라인업 allowlist가 없어 신뢰하기 어렵다"로 정리했다.
+- 원인은 최종 LLM보다 retrieval 후보군 경계에 있으며, `genreMood`와 `placeContext` 열린 검색, 후보군 내 라인업 밖 아티스트의 depth 확장, 최종 전 allowed artist 필터 부재를 주요 리스크로 기록했다.
+- 다음 구현 후보로 `U-017: Lineup-Constrained Festival Curation`을 제안했다.
+
+### 검증 결과
+
+- `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`: 성공 (73개 Markdown 파일, 오류 0건)
+- `git diff --check`: 성공 (공백 오류 0건, LF/CRLF 경고만 출력)
+
+---
+
+## Construction - Curation Progress Visibility (Standard Track Plan)
+
+**Timestamp**: 2026-06-11T11:45:00+09:00
+**User Input**: "ai 멀티턴으로 준비하는 동안 사용자는 가만히 프로그레스바를 쳐다보는 거잖아
+그 중간중간 뭘하고 있는지 보여주면 그나마 기다릴 수 있을 것같은데"
+**AI Response**: "절차형 RAG 큐레이션의 대기 경험을 개선하기 위해 서버가 단계별 진행 이벤트를 스트리밍하고, 홈 화면이 진행 메시지와 완료 단계를 표시하도록 구현하는 Standard Track 계획을 수립했습니다."
+**Context**: CONSTRUCTION - Curation Progress Visibility (Standard Track)
+
+### Standard Track 계획
+
+1. **Requirement summary**:
+   - AI 멀티턴 큐레이션이 진행되는 동안 사용자가 단순 spinner만 보지 않도록 현재 작업 단계를 UI에 표시한다.
+   - 서버는 기존 JSON 응답 호환성을 유지하면서, 프론트 요청에는 단계별 progress 이벤트와 최종 result 이벤트를 스트리밍한다.
+   - 프론트는 SPEC 분석, 검색 계획, Spotify 후보 수집, 후보 평가, 아티스트 depth 확장, 최종 큐레이션 단계를 순차적으로 보여준다.
+2. **Task type**: 사용자 대기 경험 개선, API 응답 모드 확장, 프론트 상태 표시 보강
+3. **Selected AI-DLC execution mode**: Standard Track
+4. **Reason for selected mode**: 기존 `/api/curate` API route와 홈 화면 UX, 테스트를 함께 변경하며 사용자에게 보이는 동작과 API 응답 모드를 확장한다. DB, 인증, 배포, 신규 인프라 변경은 없다.
+5. **Required context files**:
+   - `AGENTS.md`
+   - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+   - `aidlc-docs/aidlc-state.md`
+   - `app/api/curate/route.ts`
+   - `app/api/curate/route.test.ts`
+   - `src/features/home/home-page.tsx`
+   - `src/features/home/home-page.test.tsx`
+6. **Expected files to change**:
+   - `app/api/curate/route.ts`
+   - `app/api/curate/route.test.ts`
+   - `src/features/home/home-page.tsx`
+   - `src/features/home/home-page.test.tsx`
+   - `aidlc-docs/audit.md`
+   - `aidlc-docs/aidlc-state.md`
+7. **Files or directories that must not change**:
+   - `aidlc-rules/`
+   - `AGENTS.md`
+8. **Validation commands**:
+   - `npm.cmd run typecheck`
+   - `npm.cmd test`
+   - `npx.cmd markdownlint-cli2 "docs/**/*.md" "aidlc-docs/**/*.md"`
+   - `git diff --check`
+9. **Risks or assumptions**:
+   - POST 기반 진행 이벤트는 `EventSource` 대신 `fetch`의 `ReadableStream`을 사용한다.
+   - 스트리밍을 지원하지 않는 환경에서는 기존 JSON 파싱 경로 또는 fallback 메시지로 복원력을 유지한다.
+   - 진행률 숫자는 실제 시간 예측이 아니라 완료된 절차 단계 비율을 나타낸다.
+
+---
+
+## Construction - Curation Progress Visibility Complete
+
+**Timestamp**: 2026-06-11T12:05:00+09:00
+**User Input**: "ai 멀티턴으로 준비하는 동안 사용자는 가만히 프로그레스바를 쳐다보는 거잖아
+그 중간중간 뭘하고 있는지 보여주면 그나마 기다릴 수 있을 것같은데"
+**AI Response**: "`/api/curate`에 POST 기반 NDJSON progress stream을 추가하고, 홈 화면에서 진행률과 단계별 작업 메시지를 누적 표시하도록 구현했습니다. 기존 JSON 응답 경로는 유지했습니다."
+**Context**: CONSTRUCTION - Curation Progress Visibility (Standard Track Completion)
+
+### 구현 결과
+
+- `/api/curate`가 `Accept: application/x-ndjson` 또는 `streamProgress: true` 요청을 받으면 progress 이벤트와 최종 result 이벤트를 스트리밍한다.
+- 기존 JSON 응답 호출자는 같은 큐레이션 로직을 사용하면서 기존 응답 형식을 유지한다.
+- 홈 화면은 `fetch`의 `ReadableStream`을 읽어 SPEC 분해, 검색 계획, 후보 수집, 후보 평가, 아티스트 depth 확장, 최종 큐레이션 단계를 표시한다.
+- 진행 UI는 현재 단계 메시지, 퍼센트, 누적 단계 로그를 보여주며 최종 result 이벤트가 도착하면 기존 결과 화면으로 전환한다.
+- route 테스트와 home-page 테스트에 streaming progress 검증을 추가했다.
+
+### 검증 결과
+
+- `npm.cmd run typecheck`: 성공
+- `npm.cmd test`: 성공 (8개 test file, 62개 test)
+- `npx.cmd eslint app/api/curate/route.ts app/api/curate/route.test.ts src/features/home/home-page.tsx src/features/home/home-page.test.tsx`: 성공 (기존 `@next/next/no-img-element` warning 1건)
+- `npm.cmd run lint`: 실패 (`.next/` 생성물과 기존 generated type 파일까지 lint 대상에 포함되어 다수 오류 발생)
+- `npx.cmd markdownlint-cli2 "docs/**/*.md" "aidlc-docs/**/*.md"`: 성공 (74개 Markdown 파일, 오류 0건)
+- `git diff --check`: 성공 (공백 오류 0건, LF/CRLF 경고만 출력)
+
+---
+
+## Documentation - README and Spotify API Spec Refresh (Fast Track Plan)
+
+**Timestamp**: 2026-06-11T09:00:00+09:00
+**User Input**: "AGENTS.md 및 use ai-dlc를 하여 혹시 스펙문서나 README.md에 보완이 필요한지 점검 후 보강해줘"
+**AI Response**: "AGENTS.md 및 AI-DLC 규칙을 확인한 뒤 README.md와 docs/spotify-api-spec.md를 현재 구현 및 최신 Spotify 공식 문서와 대조하고, 문서 보강을 Fast Track으로 수행하기로 계획했습니다."
+**Context**: DOCUMENTATION - README and Spotify API Spec Refresh (Fast Track)
+
+### Fast Track 계획
+
+1. **Requirement summary**:
+   - README.md와 Spotify API 스펙 문서를 현재 구현 상태와 최신 Spotify 공식 문서에 맞게 점검한다.
+   - Deprecated된 Recommendations/Audio Features API 및 신규/개발 모드 앱 접근 제한을 명확히 반영한다.
+   - 현재 코드가 사용하는 Search API 기반 큐레이션, 사용자 프로필, 플레이리스트 저장 흐름, LLM provider 설정, 검증 명령을 README에 보강한다.
+2. **Task type**: 문서 점검 및 보강 (Documentation Refresh)
+3. **Selected AI-DLC execution mode**: Fast Track
+4. **Reason for selected mode**: 소스 코드, API 계약, DB 스키마, 배포 구성 변경 없이 README와 참조 스펙 문서의 정확도만 보강하는 작업이다.
+5. **Required context files**:
+   - `AGENTS.md`
+   - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+   - `aidlc-rules/aws-aidlc-rule-details/common/process-overview.md`
+   - `aidlc-rules/aws-aidlc-rule-details/common/session-continuity.md`
+   - `aidlc-rules/aws-aidlc-rule-details/common/content-validation.md`
+   - `aidlc-rules/aws-aidlc-rule-details/common/question-format-guide.md`
+   - `aidlc-docs/aidlc-state.md`
+   - `README.md`
+   - `docs/spotify-api-spec.md`
+   - `src/server/services/spotify-service.ts`
+   - `src/server/services/llm-client.ts`
+   - `app/api/curate/route.ts`
+   - `app/api/spotify/playlists/route.ts`
+6. **Expected files to change**:
+   - `aidlc-docs/aidlc-state.md`
+   - `aidlc-docs/audit.md`
+   - `README.md`
+   - `docs/spotify-api-spec.md`
+7. **Files or directories that must not change**:
+   - `aidlc-rules/`
+   - `AGENTS.md`
+   - `src/`
+   - `app/`
+8. **Validation commands**:
+   - `npx.cmd markdownlint-cli2 "README.md" "docs/**/*.md" "aidlc-docs/**/*.md"`
+   - `git diff --check`
+9. **Risks or assumptions**:
+   - Spotify Web API 정책은 시간에 따라 바뀔 수 있으므로, 이번 보강은 2026-06-11에 확인한 공식 문서 기준으로 작성한다.
+   - README의 테스트 개수는 실제 검증 결과와 차이가 날 수 있어 고정 숫자보다 검증 명령 중심으로 보강한다.
+
+---
+
+## Documentation - README and Spotify API Spec Refresh Complete
+
+**Timestamp**: 2026-06-11T09:15:00+09:00
+**User Input**: "AGENTS.md 및 use ai-dlc를 하여 혹시 스펙문서나 README.md에 보완이 필요한지 점검 후 보강해줘"
+**AI Response**: "README.md와 docs/spotify-api-spec.md에 현재 구현 상태, Spotify Deprecated API 제약, Search API 기반 대체 전략, LLM provider 및 검증 명령을 보강하고 Markdown lint와 diff 공백 검증을 완료했습니다."
+**Context**: DOCUMENTATION - README and Spotify API Spec Refresh (Fast Track Completion)
+
+### 검증 결과
+
+- `npx.cmd markdownlint-cli2 "README.md" "docs/**/*.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+- `git diff --check`: 성공 (공백 오류 없음)
+
+### 외부 공식 문서 확인
+
+- Spotify `Get Recommendations`: Deprecated 및 AI/ML 정책 노트 확인
+- Spotify `Get Several Tracks' Audio Features`: Deprecated 및 AI/ML 정책 노트 확인
+- Spotify 2024-11-27 Web API 변경 공지: 신규 Web API use case 및 개발 모드 앱의 `Recommendations`, `Audio Features`, `Audio Analysis` 접근 제한 확인
+
+---
+
+## Inception - Procedural RAG Curation Design Refinement (Design Track Plan)
+
+**Timestamp**: 2026-06-11T09:30:00+09:00
+**User Input**: "RAG-Based Music Curation 으로 할때,\n```\nLlmClient (AI 서비스): \n1차 프롬프트 (검색 쿼리 추출기): 자연어 프롬프트에서 스포티파이 검색 쿼리 3~5개를 도출합니다.\r\n2차 프롬프트 (최종 큐레이터): 실존 1차 후보군 텍스트 정보를 혼합해 감성을 분석하고, 최종 10~15곡을 엄선합니다.\n```\n\n으로 되어있어. 조금더 절차적으로 진행해야하지 않을까\n프롬프트를 받으면, 1. 듣고 싶은 장르적인 감성적인 SPEC, 2. 듣기에 적합한 장소적인 SPEC, 3. 아티스트 및 특정 아티스트의 제목 까지의 SPEC으로 세분화 해서 멀티턴으로 지식을 가져오며 Curate를 해야해\n곡이 2시간 3시간 이여도 괜찮아. 한 아티스트당 최소 3곡이였으면 좋겠어. 1곡밖에 안나오더라고\n물론, 아티스트의 곡이 3곡이 안되는건 괜찮아 Spotify에도 없을 수 도 있지 그것도 어쩔 수 없지\n\n혹시 이 인셉션에 더 보강이 필요한 것이 있다면, 보강하여도 괜찮아"
+**AI Response**: "RAG 큐레이션을 단순 2단계가 아니라 장르/감성 SPEC, 장소 SPEC, 아티스트/곡 SPEC으로 분해하고 내부 멀티턴 검색 및 아티스트별 최소 3곡 확보 정책을 갖는 절차형 설계로 보강하기 위해 Design Track 계획을 수립했습니다."
+**Context**: INCEPTION - Procedural RAG Curation Design Refinement (Design Track)
+
+### Design Track 계획
+
+1. **Requirement summary**:
+   - RAG-Based Music Curation 설계를 단순 `검색 쿼리 추출 -> 최종 큐레이션` 구조에서 절차형 멀티턴 큐레이션 구조로 보강한다.
+   - 사용자 프롬프트를 장르/감성 SPEC, 장소/청취 맥락 SPEC, 아티스트/곡 SPEC으로 분해한다.
+   - 각 SPEC별 검색 쿼리와 후보군을 반복적으로 확장하고, 최종 플레이리스트는 2~3시간 길이도 허용한다.
+   - 가능한 경우 한 아티스트당 최소 3곡을 확보하되, Spotify 검색 결과가 부족한 경우는 예외로 허용한다.
+2. **Task type**: 인셉션 요구사항 및 아키텍처 설계 보강
+3. **Selected AI-DLC execution mode**: Design Track
+4. **Reason for selected mode**: LLM 호출 단계, 검색 후보 확장 정책, 최종 선별 기준, 아티스트별 곡 수 제약 등 큐레이션 도메인 규칙과 서비스 계약을 재정의하는 설계 변경이다.
+5. **Required context files**:
+   - `AGENTS.md`
+   - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+   - `aidlc-docs/aidlc-state.md`
+   - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+   - `aidlc-docs/inception/application-design/rag-architecture.md`
+   - `aidlc-docs/construction/plans/u-012-rag-music-curation-implementation-plan.md`
+6. **Expected files to change**:
+   - `aidlc-docs/aidlc-state.md`
+   - `aidlc-docs/audit.md`
+   - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+   - `aidlc-docs/inception/application-design/rag-architecture.md`
+   - `aidlc-docs/construction/plans/u-012-rag-music-curation-implementation-plan.md`
+7. **Files or directories that must not change**:
+   - `aidlc-rules/`
+   - `AGENTS.md`
+   - `src/`
+   - `app/`
+8. **Validation commands**:
+   - `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`
+   - `git diff --check`
+9. **Risks or assumptions**:
+   - 멀티턴은 우선 사용자와의 대화형 질문이 아니라 단일 큐레이션 요청 내부에서 LLM과 Spotify Search를 여러 단계로 호출하는 내부 멀티턴 파이프라인으로 정의한다.
+   - 2~3시간 플레이리스트는 응답 크기와 LLM 토큰 비용을 늘릴 수 있으므로 후보 확장과 최종 선별 단계의 상한을 문서화한다.
+   - Spotify 정책상 외부 LLM에 전달하는 데이터 범위는 최소 트랙 메타데이터 중심으로 제한하는 전제를 유지한다.
+
+---
+
+## Inception - Procedural RAG Curation Design Refinement Complete
+
+**Timestamp**: 2026-06-11T09:45:00+09:00
+**User Input**: "RAG-Based Music Curation 으로 할때,\n```\nLlmClient (AI 서비스): \n1차 프롬프트 (검색 쿼리 추출기): 자연어 프롬프트에서 스포티파이 검색 쿼리 3~5개를 도출합니다.\r\n2차 프롬프트 (최종 큐레이터): 실존 1차 후보군 텍스트 정보를 혼합해 감성을 분석하고, 최종 10~15곡을 엄선합니다.\n```\n\n으로 되어있어. 조금더 절차적으로 진행해야하지 않을까\n프롬프트를 받으면, 1. 듣고 싶은 장르적인 감성적인 SPEC, 2. 듣기에 적합한 장소적인 SPEC, 3. 아티스트 및 특정 아티스트의 제목 까지의 SPEC으로 세분화 해서 멀티턴으로 지식을 가져오며 Curate를 해야해\n곡이 2시간 3시간 이여도 괜찮아. 한 아티스트당 최소 3곡이였으면 좋겠어. 1곡밖에 안나오더라고\n물론, 아티스트의 곡이 3곡이 안되는건 괜찮아 Spotify에도 없을 수 도 있지 그것도 어쩔 수 없지\n\n혹시 이 인셉션에 더 보강이 필요한 것이 있다면, 보강하여도 괜찮아"
+**AI Response**: "RAG 인셉션 요구사항과 아키텍처, U-012 구현 계획을 절차형 SPEC 분해 및 내부 멀티턴 검색 흐름으로 보강했습니다. 장르/감성 SPEC, 장소/청취 맥락 SPEC, 아티스트/곡 SPEC, 아티스트별 최소 3곡 목표, 2~3시간 플레이리스트 허용, Spotify 후보 부족 시 예외 처리와 부족 사유 기록 정책을 반영했습니다."
+**Context**: INCEPTION - Procedural RAG Curation Design Refinement (Design Track Completion)
+
+### 검증 결과
+
+- `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+- `git diff --check`: 성공 (공백 오류 없음)
+
+---
+
+<!-- markdownlint-disable MD038 -->
+
+## Documentation - Spotify OpenAPI Search Knowledge Extraction (Design Track Plan)
+
+**Timestamp**: 2026-06-11T10:00:00+09:00
+**User Input**: "Spotify Search API를 이제 잘 활용하기 위해 지식을 쌓아야해\n`docs/spotify-api-spec.md`에는 작성을 했는데 얼마 없고 사용한 것들만 모아두었어\n`https://developer.spotify.com/reference/web-api/open-api-schema.yaml ` 는 Spotify Search API문서이야 \n이 문서를 읽고 먼저 MD파일 으로 정리해줘 \n그 다음 우리 인셉션에 활용할만한 api를 추려서 `docs/spotify-api-spec.md`에 작성하자"
+**AI Response**: "Spotify 공식 OpenAPI 스키마를 내려받아 Search API 및 RAG 후보 확보에 관련된 엔드포인트를 별도 Markdown 참조 문서로 정리하고, 인셉션에 활용할 API 후보만 기존 docs/spotify-api-spec.md에 선별 반영하기 위한 Design Track 계획을 수립했습니다."
+**Context**: DOCUMENTATION - Spotify OpenAPI Search Knowledge Extraction (Design Track)
+
+### Design Track 계획
+
+1. **Requirement summary**:
+   - Spotify 공식 OpenAPI 스키마(`open-api-schema.yaml`)를 읽고 Search API 중심 지식을 별도 Markdown 문서로 정리한다.
+   - Search API와 함께 RAG 인셉션에 활용 가능한 주변 API를 선별해 `docs/spotify-api-spec.md`에 반영한다.
+   - Deprecated 또는 신규/개발 모드 제한 가능성이 있는 API는 적용 후보에서 제외하거나 주의 표시한다.
+2. **Task type**: 외부 API 스키마 분석 및 문서/인셉션 스펙 보강
+3. **Selected AI-DLC execution mode**: Design Track
+4. **Reason for selected mode**: Spotify Search 활용 전략, 후보군 확장 방식, 적용/제외 API 판단이 RAG 인셉션 설계와 구현 계획에 직접 영향을 주는 API 계약/설계 결정이다.
+5. **Required context files**:
+   - `AGENTS.md`
+   - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+   - `aidlc-docs/aidlc-state.md`
+   - `docs/spotify-api-spec.md`
+   - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+   - `aidlc-docs/inception/application-design/rag-architecture.md`
+   - `https://developer.spotify.com/reference/web-api/open-api-schema.yaml`
+6. **Expected files to change**:
+   - `aidlc-docs/audit.md`
+   - `aidlc-docs/aidlc-state.md`
+   - `docs/spotify-open-api-search-reference.md` [NEW]
+   - `docs/spotify-api-spec.md`
+7. **Files or directories that must not change**:
+   - `aidlc-rules/`
+   - `AGENTS.md`
+   - `src/`
+   - `app/`
+8. **Validation commands**:
+   - `npx.cmd markdownlint-cli2 "docs/**/*.md" "aidlc-docs/**/*.md"`
+   - `git diff --check`
+9. **Risks or assumptions**:
+   - 공식 스키마는 2026-06-11에 내려받은 내용을 기준으로 정리한다.
+   - Search API는 `limit` 최대 10이므로 긴 플레이리스트 후보군 확보에는 다중 query와 offset 페이지 확장이 필요하다.
+   - `x-spotify-policy-list`에 MachineLearning 정책이 연결된 API는 외부 LLM 컨텍스트 사용 시 데이터 최소화와 정책 검토가 필요하다.
+
+---
+
+## Documentation - Spotify OpenAPI Search Knowledge Extraction Complete
+
+**Timestamp**: 2026-06-11T10:20:00+09:00
+**User Input**: "Spotify Search API를 이제 잘 활용하기 위해 지식을 쌓아야해\n`docs/spotify-api-spec.md`에는 작성을 했는데 얼마 없고 사용한 것들만 모아두었어\n`https://developer.spotify.com/reference/web-api/open-api-schema.yaml ` 는 Spotify Search API문서이야 \n이 문서를 읽고 먼저 MD파일 으로 정리해줘 \n그 다음 우리 인셉션에 활용할만한 api를 추려서 `docs/spotify-api-spec.md`에 작성하자"
+**AI Response**: "Spotify 공식 OpenAPI 스키마를 기반으로 Search API 중심 참조 문서 `docs/spotify-open-api-search-reference.md`를 새로 작성하고, RAG 인셉션에 활용할 API 후보와 제외 API를 `docs/spotify-api-spec.md`에 반영했습니다."
+**Context**: DOCUMENTATION - Spotify OpenAPI Search Knowledge Extraction (Design Track Completion)
+
+### 검증 결과
+
+- `npx.cmd markdownlint-cli2 "docs/**/*.md" "aidlc-docs/**/*.md"`: 성공 (린트 에러 0건)
+- `git diff --check`: 성공 (공백 오류 없음)
+
+---
+
+## Construction - Procedural RAG Curation Implementation (Standard Track Plan)
+
+**Timestamp**: 2026-06-11T10:35:00+09:00
+**User Input**: "이제 구현으로 가보자"
+**AI Response**: "절차형 RAG 큐레이션 설계를 코드로 구현하기 위해 기존 호환 메서드는 유지하면서 LlmClient, SpotifyService, /api/curate 및 관련 테스트를 확장하는 Standard Track 계획을 수립했습니다."
+**Context**: CONSTRUCTION - Procedural RAG Curation Implementation (Standard Track)
+
+### Standard Track 계획
+
+1. **Requirement summary**:
+   - `/api/curate`가 기존 단순 LLM 추천 후 Search 매핑 대신, 3축 SPEC 분해, 검색 라운드 생성, Spotify Search 후보 수집, 후보 평가, 아티스트 깊이 확장, 최종 후보 기반 큐레이션 순서로 동작하게 한다.
+   - 기존 `curate()` 및 `searchTracks()` 호환 동작은 유지한다.
+   - Mock 모드에서도 절차형 RAG 흐름을 테스트 가능하게 한다.
+2. **Task type**: 기능 구현 및 서비스 레이어 고도화
+3. **Selected AI-DLC execution mode**: Standard Track
+4. **Reason for selected mode**: 기존 서비스 계층(`LlmClient`, `SpotifyService`), API Route Handler(`/api/curate`), 단위/통합 테스트를 함께 변경하되 신규 인프라나 DB 스키마 변경은 없다.
+5. **Required context files**:
+   - `aidlc-docs/inception/requirements/rag-curation-requirements.md`
+   - `aidlc-docs/inception/application-design/rag-architecture.md`
+   - `aidlc-docs/construction/plans/u-012-rag-music-curation-implementation-plan.md`
+   - `src/server/services/llm-client.ts`
+   - `src/server/services/spotify-service.ts`
+   - `app/api/curate/route.ts`
+   - 관련 테스트 파일
+6. **Expected files to change**:
+   - `src/server/services/llm-client.ts`
+   - `src/server/services/llm-client.test.ts`
+   - `src/server/services/spotify-service.ts`
+   - `src/server/services/spotify-service.test.ts`
+   - `app/api/curate/route.ts`
+   - `app/api/curate/route.test.ts`
+   - `aidlc-docs/audit.md`
+   - `aidlc-docs/aidlc-state.md`
+7. **Files or directories that must not change**:
+   - `aidlc-rules/`
+   - `AGENTS.md`
+8. **Validation commands**:
+   - `npm.cmd run typecheck`
+   - `npm.cmd test`
+   - `npx.cmd markdownlint-cli2 "docs/**/*.md" "aidlc-docs/**/*.md"`
+   - `git diff --check`
+9. **Risks or assumptions**:
+   - 외부 LLM이 후보군 밖의 곡을 반환할 수 있으므로 최종 결과는 Spotify 후보군의 `id`/`uri` 기준으로 보정한다.
+   - Search API `limit` 최대 10 제약을 반영해 다중 query와 offset 기반 수집을 구현한다.
+   - 부분 라운드 실패는 전체 실패로 보지 않고 가능한 후보군으로 계속 진행한다.
+
+---
+
+## Construction - Procedural RAG Curation Implementation Complete
+
+**Timestamp**: 2026-06-11T11:20:00+09:00
+**User Input**: "이제 구현으로 가보자"
+**AI Response**: "절차형 RAG 큐레이션 파이프라인을 `/api/curate`, `LlmClient`, `SpotifyService`에 구현하고, 3축 SPEC 추출, 검색 라운드 생성, 후보군 커버리지 평가, 아티스트별 최소 3곡 후보 확장, 최종 후보 기반 큐레이션 및 fallback을 테스트로 검증했습니다."
+**Context**: CONSTRUCTION - Procedural RAG Curation Implementation (Standard Track Completion)
+
+### 구현 결과
+
+- `/api/curate`를 3축 SPEC 추출 → 검색 계획 생성 → Spotify Search 후보 수집 → 후보 커버리지 평가 → 아티스트 depth 후보 확장 → 최종 큐레이션 순서로 재구성했다.
+- `LlmClient`에 절차형 RAG용 LLM 호출, mock mode, 후보 기반 최종 선별, 후보 외 트랙 필터링, 아티스트 depth 메타데이터 생성을 추가했다.
+- `SpotifyService`에 검색 라운드 기반 후보 수집과 아티스트별 depth 확장 검색을 추가하고, Search API `limit` 최대 10 제약과 중복 제거를 반영했다.
+- 관련 route/service 테스트를 보강해 mock mode, live mode 후보 필터링, fallback, 검색 라운드, 아티스트 depth 확장을 검증했다.
+
+### 검증 결과
+
+- `npm.cmd run typecheck`: 성공
+- `npm.cmd test`: 성공 (8개 test file, 60개 test)
+- `npx.cmd markdownlint-cli2 "docs/**/*.md" "aidlc-docs/**/*.md"`: 성공 (74개 Markdown 파일, 오류 0건)
+- `git diff --check`: 성공 (공백 오류 0건, LF/CRLF 경고만 출력)
 
 ---

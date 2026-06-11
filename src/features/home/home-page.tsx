@@ -19,6 +19,32 @@ interface CurationResult {
   tracks: CurationTrack[];
 }
 
+interface CurationProgressItem {
+  stage: string;
+  message: string;
+  detail?: string;
+  progress: number;
+}
+
+type CurationStreamEvent =
+  | {
+      type: "progress";
+      stage: string;
+      message: string;
+      detail?: string;
+      progress: number;
+    }
+  | {
+      type: "result";
+      data: CurationResult;
+      progress: 100;
+    }
+  | {
+      type: "error";
+      error: string;
+      message: string;
+    };
+
 interface SpotifyUserProfile {
   id: string;
   displayName: string;
@@ -35,6 +61,7 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
   const [savedPlaylistId, setSavedPlaylistId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<SpotifyUserProfile | null>(null);
+  const [curationProgress, setCurationProgress] = useState<CurationProgressItem[]>([]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -64,20 +91,41 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
     setCurationResult(null);
     setSavedPlaylistId(null);
     setError(null);
+    setCurationProgress([
+      {
+        stage: "request",
+        message: "큐레이션 요청을 준비하고 있어요.",
+        detail: "입력한 문장을 AI가 이해할 수 있는 형태로 전달합니다.",
+        progress: 4,
+      },
+    ]);
 
     try {
       const res = await fetch("/api/curate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userPrompt: prompt }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/x-ndjson",
+        },
+        body: JSON.stringify({ userPrompt: prompt, streamProgress: true }),
       });
 
       if (!res.ok) {
         throw new Error("Curation request failed");
       }
 
-      const data = await res.json();
-      setCurationResult(data);
+      const contentType = res.headers.get("content-type") ?? "";
+      if (res.body && contentType.includes("application/x-ndjson")) {
+        const data = await readCurationStream(res.body, (event) => {
+          if (event.type === "progress") {
+            setCurationProgress((current) => upsertProgress(current, event));
+          }
+        });
+        setCurationResult(data);
+      } else {
+        const data = await res.json();
+        setCurationResult(data);
+      }
     } catch (e) {
       console.error(e);
       setError("큐레이션 생성에 실패했습니다. 다시 시도해 주세요.");
@@ -135,10 +183,10 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                 Spotify AI Curator v1.0
               </span>
               <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400">
-                분위기 맞춤형 AI 플레이리스트
+                말하는 대로 흐르는 오늘의 BGM
               </h1>
               <p className="max-w-xl text-lg text-slate-400 leading-relaxed">
-                현재 느끼는 감정이나 분위기를 자연어로 입력하면, 최근 나의 Spotify 감상 기록을 반영해 어울리는 곡들을 선정하고 나만의 플레이리스트로 저장합니다.
+                지금 머릿속에 떠오르는 감정이나 눈앞의 분위기를 그대로 적어보세요. 나만의 플레이리스트로 저장합니다.
               </p>
             </div>
 
@@ -234,6 +282,7 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                         ]
                       });
                       setSavedPlaylistId(null);
+                      setCurationProgress([]);
                     }}
                     className="inline-flex h-12 items-center justify-center rounded-xl border border-dashed border-emerald-500/30 bg-emerald-500/5 px-5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition"
                     type="button"
@@ -281,6 +330,7 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                         { id: "real-comethru", uri: "spotify:track:18uw3e2j22wALnCjL8bHsi", title: "Comethru", artistName: "Jeremy Zucker" },
                       ]
                     });
+                    setCurationProgress([]);
                   }}
                   className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/40 px-5 text-sm font-semibold text-slate-300 hover:border-slate-700 hover:text-white transition"
                   data-testid="home-preview-flow-button"
@@ -298,16 +348,46 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
             
             {/* Curation state display */}
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
-                <div className="relative flex items-center justify-center">
-                  <div className="h-16 w-16 animate-spin rounded-full border-4 border-slate-800 border-t-emerald-500" />
-                  <span className="absolute text-emerald-400 font-bold">AI</span>
+              <div className="space-y-5 py-4" data-testid="curation-progress-panel">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+                        AI Curation Progress
+                      </span>
+                      <h3 className="mt-1 text-base font-semibold text-slate-200">
+                        {curationProgress.at(-1)?.message ?? "AI 플레이리스트 조율 중"}
+                      </h3>
+                    </div>
+                    <span className="shrink-0 text-sm font-bold text-emerald-300" data-testid="curation-progress-percent">
+                      {Math.max(...curationProgress.map((item) => item.progress), 0)}%
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                      style={{ width: `${Math.max(...curationProgress.map((item) => item.progress), 0)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-base font-semibold text-slate-200">AI 플레이리스트 조율 중</h3>
-                  <p className="text-xs text-slate-500 max-w-[280px]">
-                    사용자 감정과 최근 재생한 Spotify 선곡 데이터를 혼합 분석하고 있습니다. 잠시만 기다려주세요.
-                  </p>
+
+                <div className="space-y-2">
+                  {curationProgress.map((item) => (
+                    <div
+                      key={item.stage}
+                      className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 text-left"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-200">{item.message}</p>
+                          {item.detail && (
+                            <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{item.detail}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : curationResult ? (
@@ -385,4 +465,72 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
       </section>
     </main>
   );
+}
+
+function upsertProgress(
+  current: CurationProgressItem[],
+  event: Extract<CurationStreamEvent, { type: "progress" }>
+): CurationProgressItem[] {
+  const nextItem = {
+    stage: event.stage,
+    message: event.message,
+    detail: event.detail,
+    progress: event.progress,
+  };
+
+  const existingIndex = current.findIndex((item) => item.stage === event.stage);
+  if (existingIndex === -1) {
+    return [...current, nextItem];
+  }
+
+  return current.map((item, index) => (index === existingIndex ? nextItem : item));
+}
+
+async function readCurationStream(
+  body: ReadableStream<Uint8Array>,
+  onEvent: (event: CurationStreamEvent) => void
+): Promise<CurationResult> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      const result = parseCurationStreamLine(line, onEvent);
+      if (result) return result;
+    }
+  }
+
+  const finalResult = parseCurationStreamLine(buffer, onEvent);
+  if (finalResult) return finalResult;
+
+  throw new Error("Curation stream ended without result");
+}
+
+function parseCurationStreamLine(
+  line: string,
+  onEvent: (event: CurationStreamEvent) => void
+): CurationResult | null {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+
+  const event = JSON.parse(trimmed) as CurationStreamEvent;
+  onEvent(event);
+
+  if (event.type === "result") {
+    return event.data;
+  }
+
+  if (event.type === "error") {
+    throw new Error(event.message || event.error);
+  }
+
+  return null;
 }
