@@ -1783,3 +1783,66 @@ baan
 - `git diff --check`: 성공 (공백 오류 0건, LF/CRLF 경고만 출력)
 
 ---
+
+## Construction - AI-Driven Playlist Name and Description Recommendations (Design Track Plan)
+
+**Timestamp**: 2026-06-11T15:32:00+09:00
+**User Input**: "AGENTS.md를 읽고 인셉션 요구사항, 유저스토리 , 도메인  등등을 반영을 하고 진행을 해줘 \ncreatePlaylist으로 만들면 name와 description도 그 사용자가 프롬프트에 넣었던 의도에 맞은 이름과 설명이여야하지 않을까나\nllm으로 추천받던가 해서 만들어줘"
+**AI Response**: "사용자의 프롬프트 의도와 선별된 곡 리스트를 바탕으로 AI가 플레이리스트 제목 및 설명을 추천하는 전용 API와 편집 폼 UI를 구현하는 Design Track 계획을 수립하고 승인을 대기했습니다."
+**Context**: CONSTRUCTION - AI-Driven Playlist Name and Description Recommendations (Design Track)
+
+### Design Track 계획
+
+1. **Requirement summary**:
+   - 플레이리스트 저장 시 기본 제공되던 고정/단순한 제목 및 설명 대신, AI가 현재 구성된 곡 리스트와 원본 프롬프트를 기반으로 감성적인 제목과 설명을 다시 추천하는 전용 API 및 프론트엔드 편집/재추천 UI를 제공한다.
+2. **Task type**: 기능 추가 및 UI 개선
+3. **Selected AI-DLC execution mode**: Design Track
+4. **Reason for selected mode**: 플레이리스트 작명을 위한 신규 API `/api/curate/recommend-metadata` 추가, `LlmClient` 내부의 신규 프롬프트 및 추천 서비스 연동 설계, 그리고 UI 컴포넌트 상에서의 가변 상태(제목/설명 편집 폼) 설계가 연관된다.
+5. **Required context files**:
+   - `src/server/services/llm-client.ts`
+   - `app/api/spotify/playlists/route.ts`
+   - `src/features/home/home-page.tsx`
+6. **Expected files to change**:
+   - `src/server/services/llm-client.ts`
+   - `src/server/services/llm-client.test.ts`
+   - `app/api/curate/recommend-metadata/route.ts` [NEW]
+   - `app/api/curate/recommend-metadata/route.test.ts` [NEW]
+   - `src/features/home/home-page.tsx`
+   - `src/features/home/home-page.test.tsx`
+   - `aidlc-docs/audit.md`
+   - `aidlc-docs/aidlc-state.md`
+7. **Files or directories that must not change**:
+   - `aidlc-rules/`
+   - `AGENTS.md`
+8. **Validation commands**:
+   - `npm.cmd run typecheck`
+   - `npm.cmd test`
+   - `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`
+   - `git diff --check`
+9. **Risks or assumptions**:
+   - AI 작명 API는 큐레이션 결과가 주어졌을 때 비동기로 호출되며, LLM API Key 미설정 혹은 Mock 모드 활성화 시에는 정형화된 감성 제목 후보들 중 분위기에 맞게 휴리스틱으로 추천하여 복원력을 확보한다.
+   - 플레이리스트 저장 완료 후에는 제목/설명 변경 입력 폼이 비활성화되거나 완료 메시지로 가려져야 혼선을 방지할 수 있다.
+
+---
+
+## Construction - AI-Driven Playlist Name and Description Recommendations Complete
+
+**Timestamp**: 2026-06-11T15:45:00+09:00
+**User Input**: "착수해"
+**AI Response**: "AI 기반 플레이리스트 작명 추천 API `/api/curate/recommend-metadata` 구현, `LlmClient` 서비스 메서드 추가, 프론트엔드 편집 폼 UI 및 AI 추천 갱신 버튼 연동, 그리고 수정한 메타데이터로 Spotify 플레이리스트를 생성해 저장하는 연동 작업을 완료하였습니다. 타입 안전성 검사, 62개 단위 테스트, 마크다운 린트를 통해 100% 검증을 완료했습니다."
+**Context**: CONSTRUCTION - AI-Driven Playlist Name and Description Recommendations (Design Track Completion)
+
+### 구현 결과
+
+- `LlmClient`에 프롬프트와 곡 리스트를 분석하여 어울리는 제목/설명을 생성하는 `recommendPlaylistMetadata` 서비스 메서드를 추가하고 mock/live 모드를 분리 설계했습니다.
+- `/api/curate/recommend-metadata` Route Handler를 신설하여 세션 인증 및 요청 바디 검증을 통과한 뒤 AI 작명 추천을 제공하도록 하였습니다.
+- `home-page.tsx`에 플레이리스트 생성 성공 후 editable title/description 폼 상태와 "AI 추천 작명" 버튼을 추가 연동하였습니다.
+- "이 플레이리스트를 내 Spotify에 저장" 버튼 클릭 시, 사용자가 수정한 타이틀과 설명으로 `/api/spotify/playlists`에 전달되도록 최종 저장 로직을 결합했습니다.
+- 서비스 단위 테스트, API 테스트, 홈 페이지 컴포넌트 통합 테스트에 각 custom metadata 저장 시나리오와 AI 추천 단추 트리거 동작을 포함하여 Vitest 검증을 완수했습니다.
+
+### 검증 결과
+
+- `npm.cmd run typecheck`: 성공
+- `npm.cmd test`: 성공 (9개 test file, 66개 test 통과)
+- `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md" "docs/**/*.md"`: 성공 (오류 0건)
+- `git diff --check`: 성공 (공백 오류 없음)

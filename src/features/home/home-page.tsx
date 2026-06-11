@@ -63,6 +63,11 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
   const [profile, setProfile] = useState<SpotifyUserProfile | null>(null);
   const [curationProgress, setCurationProgress] = useState<CurationProgressItem[]>([]);
 
+  // U-019 States
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
+  const [isRecommending, setIsRecommending] = useState(false);
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -91,6 +96,8 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
     setCurationResult(null);
     setSavedPlaylistId(null);
     setError(null);
+    setEditedTitle("");
+    setEditedDescription("");
     setCurationProgress([
       {
         stage: "request",
@@ -115,22 +122,58 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
       }
 
       const contentType = res.headers.get("content-type") ?? "";
+      let data: CurationResult;
       if (res.body && contentType.includes("application/x-ndjson")) {
-        const data = await readCurationStream(res.body, (event) => {
+        data = await readCurationStream(res.body, (event) => {
           if (event.type === "progress") {
             setCurationProgress((current) => upsertProgress(current, event));
           }
         });
         setCurationResult(data);
       } else {
-        const data = await res.json();
+        data = await res.json();
         setCurationResult(data);
       }
+      setEditedTitle(data.title);
+      setEditedDescription(data.description);
     } catch (e) {
       console.error(e);
       setError("큐레이션 생성에 실패했습니다. 다시 시도해 주세요.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRecommendMetadata = async () => {
+    if (!curationResult) return;
+    setIsRecommending(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/curate/recommend-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userPrompt: prompt,
+          tracks: curationResult.tracks.map((t) => ({
+            title: t.title,
+            artistName: t.artistName,
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to recommend metadata");
+      }
+
+      const data = await res.json();
+      setEditedTitle(data.title);
+      setEditedDescription(data.description);
+    } catch (e) {
+      console.error(e);
+      setError("AI 작명 추천에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setIsRecommending(false);
     }
   };
 
@@ -145,8 +188,8 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: curationResult.title,
-          description: curationResult.description,
+          name: editedTitle,
+          description: editedDescription,
           trackUris,
         }),
       });
@@ -164,6 +207,7 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
       setIsSaving(false);
     }
   };
+
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500/30 selection:text-emerald-300">
@@ -272,7 +316,7 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                   <button
                     onClick={() => {
                       setPrompt("퇴근길에 들을 수 있는 차분하지만 리듬감 있는 playlist");
-                      setCurationResult({
+                      const testData = {
                         title: "Neon Evening Reset",
                         description: "하루를 내려놓는 부드러운 비트와 선명한 멜로디를 중심으로 만든 저녁용 playlist 초안입니다. (실제 트랙 3곡 구성)",
                         tracks: [
@@ -280,7 +324,10 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                           { id: "real-coffee", uri: "spotify:track:4t9n2v1VM7V0IF5U5fbg61", title: "Coffee", artistName: "beabadoobee" },
                           { id: "real-comethru", uri: "spotify:track:18uw3e2j22wALnCjL8bHsi", title: "Comethru", artistName: "Jeremy Zucker" },
                         ]
-                      });
+                      };
+                      setCurationResult(testData);
+                      setEditedTitle(testData.title);
+                      setEditedDescription(testData.description);
                       setSavedPlaylistId(null);
                       setCurationProgress([]);
                     }}
@@ -321,7 +368,7 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                 <button
                   onClick={() => {
                     setPrompt("퇴근길에 들을 수 있는 차분하지만 리듬감 있는 playlist");
-                    setCurationResult({
+                    const testData = {
                       title: "Neon Evening Reset",
                       description: "하루를 내려놓는 부드러운 비트와 선명한 멜로디를 중심으로 만든 저녁용 playlist 초안입니다. (실제 트랙 3곡 구성)",
                       tracks: [
@@ -329,7 +376,10 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                         { id: "real-coffee", uri: "spotify:track:4t9n2v1VM7V0IF5U5fbg61", title: "Coffee", artistName: "beabadoobee" },
                         { id: "real-comethru", uri: "spotify:track:18uw3e2j22wALnCjL8bHsi", title: "Comethru", artistName: "Jeremy Zucker" },
                       ]
-                    });
+                    };
+                    setCurationResult(testData);
+                    setEditedTitle(testData.title);
+                    setEditedDescription(testData.description);
                     setCurationProgress([]);
                   }}
                   className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/40 px-5 text-sm font-semibold text-slate-300 hover:border-slate-700 hover:text-white transition"
@@ -396,12 +446,65 @@ export function HomePage({ isAuthenticated = false }: HomePageProps) {
                   <span className="text-[10px] font-extrabold tracking-widest text-emerald-400 uppercase">
                     AI Curated Result
                   </span>
-                  <h2 className="mt-1 text-2xl font-bold text-white leading-tight">
-                    {curationResult.title}
-                  </h2>
-                  <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-                    {curationResult.description}
-                  </p>
+
+                  {/* Playlist Metadata Form */}
+                  <div className="mt-3 space-y-4">
+                    <div className="space-y-1">
+                      <label htmlFor="playlist-title-input" className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        플레이리스트 제목
+                      </label>
+                      <input
+                        id="playlist-title-input"
+                        type="text"
+                        value={editedTitle}
+                        onChange={(e) => setEditedTitle(e.target.value)}
+                        disabled={isSaving || savedPlaylistId !== null}
+                        className="w-full rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 text-sm font-bold text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition disabled:opacity-50"
+                        data-testid="playlist-title-input"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label htmlFor="playlist-description-input" className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        플레이리스트 설명
+                      </label>
+                      <textarea
+                        id="playlist-description-input"
+                        value={editedDescription}
+                        onChange={(e) => setEditedDescription(e.target.value)}
+                        disabled={isSaving || savedPlaylistId !== null}
+                        className="min-h-[70px] w-full rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 text-xs text-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition resize-none disabled:opacity-50"
+                        data-testid="playlist-description-input"
+                      />
+                    </div>
+
+                    {isAuthenticated && !savedPlaylistId && (
+                      <button
+                        onClick={handleRecommendMetadata}
+                        disabled={isRecommending || isSaving}
+                        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/40 transition disabled:opacity-50"
+                        type="button"
+                        data-testid="ai-recommend-metadata-button"
+                      >
+                        {isRecommending ? (
+                          <>
+                            <svg className="animate-spin h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            추천 중...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            AI 추천 작명
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-3">

@@ -802,4 +802,69 @@ ${JSON.stringify(candidates.slice(0, 150))}`;
       ],
     };
   }
+
+  /**
+   * 프롬프트와 곡 리스트를 바탕으로 어울리는 감성적인 플레이리스트 제목과 설명을 추천합니다.
+   */
+  async recommendPlaylistMetadata(
+    userPrompt: string,
+    tracks: Array<{ title: string; artistName: string }>
+  ): Promise<{ title: string; description: string }> {
+    if (this.mockMode) {
+      return this.getMockRecommendedMetadata(userPrompt, tracks);
+    }
+
+    const systemPrompt = `You are a creative music curator and copywriter.
+Generate a creative, highly aesthetic playlist title and a detailed description based on the user's original intent/mood and the selected tracks.
+The title must be catchy, emotional, or atmospheric (15 characters or less in Korean/English or mixed).
+The description must be a narrative explaining the mood, style, and flow of the selected tracks (around 100 characters in Korean).
+Return raw JSON only:
+{
+  "title": "Creative Playlist Title",
+  "description": "Emotional curation description"
+}
+Do NOT wrap the response in Markdown block (like \`\`\`json) and do not provide any extra conversational text. Return only raw JSON.`;
+
+    const userContent = `User Prompt/Intent: "${userPrompt}"
+Selected Tracks:
+${tracks.map((t) => `- ${t.title} by ${t.artistName}`).join("\n")}
+
+Please recommend a fitting title and description for this playlist.`;
+
+    const fullPrompt = `${systemPrompt}\n\n${userContent}`;
+
+    try {
+      const parsed = await this.callLlmJson<{ title: string; description: string }>(fullPrompt, 15000);
+      if (!parsed.title || !parsed.description) {
+        throw new SyntaxError("Missing required recommendation fields");
+      }
+      return {
+        title: parsed.title,
+        description: parsed.description,
+      };
+    } catch (error) {
+      console.warn("Failed to recommend playlist metadata. Falling back to heuristic recommendation.", error);
+      return this.getMockRecommendedMetadata(userPrompt, tracks);
+    }
+  }
+
+  private getMockRecommendedMetadata(
+    userPrompt: string,
+    tracks: Array<{ title: string; artistName: string }>
+  ): { title: string; description: string } {
+    const isChill = this.isChillPrompt(userPrompt);
+    const artists = Array.from(new Set(tracks.map((t) => t.artistName))).slice(0, 3).join(", ");
+
+    if (isChill) {
+      return {
+        title: "차분한 밤의 선율",
+        description: `사용자님의 '${userPrompt}' 의도를 담아, ${artists} 등의 아티스트들과 함께 차분하고 평온한 무드를 자아내는 야간 감성 플레이리스트입니다.`,
+      };
+    }
+
+    return {
+      title: "에너지 부스트 믹스",
+      description: `사용자님의 '${userPrompt}' 의도를 담아, ${artists} 등의 아티스트들과 함께 지치지 않는 활력과 비트를 가득 담은 업비트 믹스 플레이리스트입니다.`,
+    };
+  }
 }
