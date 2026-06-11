@@ -207,6 +207,43 @@ As a 순간 분위기 큐레이터, I want 추천 결과를 내 Spotify 계정�
 - R-006
 - NFR-003
 
+## Story S-009: 추천된 플레이리스트의 제목과 설명을 저장 전에 편집하고 AI 작명을 다시 추천받는다
+
+**Priority**: Should
+
+As a 순간 분위기 큐레이터, I want 추천 결과의 제목과 설명이 마음에 들지
+않을 때 직접 수정하거나 AI에게 새로운 제목과 설명을 다시 추천받고 싶다,
+so that 내 마음에 쏙 드는 맞춤형 제목과 설명으로 Spotify 플레이리스트를
+저장할 수 있다.
+
+### Acceptance Criteria
+
+- Given 사용자가 플레이리스트 추천 결과를 확인한 상태일 때, when 제목과
+  설명 영역을 클릭하면, then 이를 직접 수정할 수 있는 입력창(Input/Textarea)으로
+  편집할 수 있다.
+- Given 편집창이 활성화되어 있을 때, when AI 작명 추천 버튼(`🪄`)을 누르면,
+  then 현재 곡 목록과 원본 프롬프트를 기반으로 AI가 새로 추천한 제목과
+  설명이 입력창에 채워진다.
+- Given 플레이리스트 저장 액션을 실행하면, then 사용자가 최종 편집한
+  제목과 설명으로 Spotify 플레이리스트 생성 API가 호출되어 저장된다.
+
+### Verification Expectations
+
+- **Automation Required**: Yes
+- **Expected Test Level**: unit, e2e
+- **Required Test Evidence**: 제목/설명 편집 UI 바인딩 테스트, AI 재추천
+  API 연동 및 Mocking 테스트, 변경된 메타데이터 기반 플레이리스트 생성 API
+  호출 테스트
+- **Manual Verification Rationale**: 없음
+
+### Requirement Mapping
+
+- FR-8.1
+- FR-8.2
+- FR-8.3
+- FR-8.4
+- FR-8.5
+
 ## Epic E-006: 대표 실패 상태 처리
 
 ## Story S-007: 인증과 외부 API 대표 오류를 이해할 수 있게 보여준다
@@ -285,3 +322,4 @@ MVP를 실행하고 싶다, so that 배포와 검증을 빠르게 반복할 수 
 | S-006 | Must | P-001 | playlist 생성 adapter, 성공/실패 UI |
 | S-007 | Should | P-001 | 대표 오류 mapping, 오류 UI |
 | S-008 | Should | P-002 | build, 환경 변수, secret 경계 |
+| S-009 | Should | P-001 | 메타데이터 편집 UI, AI 재추천 API, 저장 연동 |

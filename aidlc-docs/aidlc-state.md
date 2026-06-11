@@ -304,13 +304,15 @@
   - **상태**: RAG 요구사항과 아키텍처에 `generate -> validate -> repair -> final` 흐름, 라인업 제한형 allowlist 하드 제약, 생성 후 검증/수리 정책을 반영 완료
 - [x] U-018: Lineup Validation and Repair Implementation - COMPLETE
   - **상태**: 라인업 제한형 큐레이션에서 `allowedArtists` 추출, 아티스트 검색 우선 계획, 후보군 allowlist 필터링, 아티스트 depth target 제한, 최종 결과 검증/수리 메타데이터를 구현하고 테스트 검증을 통과
+- [x] U-019: AI-Driven Playlist Name and Description Recommendations - COMPLETE
+  - **상태**: 플레이리스트 저장 시 사용자가 제목/설명을 자유롭게 편집할 수 있는 입력 폼 UI를 연동하고, 곡 리스트와 프롬프트 기반의 AI 추천 재작명 전용 API `/api/curate/recommend-metadata` 및 UI 연동을 구현 완료하여 타입체크, 테스트, 마크다운 린트를 통과함.
 
 ## 현재 상태
 
 - **Lifecycle Phase**: CONSTRUCTION
 - **Current Stage**: Construction
 - **Next Stage**: Maintenance and Expansion
-- **Status**: RAG-based music curation implementation, curation progress visibility, post-generation validation requirements, and lineup validation/repair implementation completed on 2026-06-11. `/api/curate` now uses 3-axis SPEC extraction, internal multi-turn LLM/Search planning, Spotify Search candidate collection, artist depth expansion, candidate coverage evaluation, final candidate-grounded curation, optional NDJSON progress streaming, and strict lineup allowlist filtering/repair for festival prompts.
+- **Status**: RAG-based music curation implementation, curation progress visibility, post-generation validation requirements, lineup validation/repair, and AI-driven playlist name/description recommendations with user-editable forms completed on 2026-06-11. `/api/curate` now uses 3-axis SPEC extraction, internal multi-turn LLM/Search planning, Spotify Search candidate collection, artist depth expansion, candidate coverage evaluation, final candidate-grounded curation, optional NDJSON progress streaming, and strict lineup allowlist filtering/repair for festival prompts.
 
 ## 현재 작업 계획 (2026-06-11 큐레이션 진행 상태 표시)
 
@@ -347,3 +349,39 @@
   - 진행률 숫자는 실제 시간 예측이 아니라 완료된 절차 단계 비율을 나타낸다.
 - **실행 단계**: Workspace 확인, Requirements Analysis standard, Workflow Planning standard, Code Generation, Build and Test
 - **생략 단계 및 사유**: User Stories, Application Design, Units Generation, NFR Requirements, NFR Design, Infrastructure Design은 기존 화면과 API 경계 안에서 대기 상태 표시를 보강하는 작업이므로 생략한다.
+
+## 현재 작업 계획 (2026-06-11 플레이리스트 AI 작명 추천 및 편집 기능 추가)
+
+- **Requirement summary**: 플레이리스트 저장 시 기본 제공되던 고정/단순한 제목 및 설명 대신, AI가 현재 구성된 곡 리스트와 원본 프롬프트를 기반으로 감성적인 제목과 설명을 다시 추천하는 전용 API 및 프론트엔드 편집/재추천 UI를 제공한다.
+- **Task type**: 기능 추가 및 UI 개선
+- **Selected AI-DLC execution mode**: Design Track
+- **Reason for selected mode**: 플레이리스트 작명을 위한 신규 API `/api/curate/recommend-metadata` 추가, `LlmClient` 내부의 신규 프롬프트 및 추천 서비스 연동 설계, 그리고 UI 컴포넌트 상에서의 가변 상태(제목/설명 편집 폼) 설계가 연관된다.
+- **Required context files**:
+  - `AGENTS.md`
+  - `aidlc-rules/aws-aidlc-rules/core-workflow.md`
+  - `aidlc-docs/aidlc-state.md`
+  - `src/server/services/llm-client.ts`
+  - `app/api/spotify/playlists/route.ts`
+  - `src/features/home/home-page.tsx`
+- **Expected files to change**:
+  - `aidlc-docs/aidlc-state.md`
+  - `aidlc-docs/audit.md`
+  - `src/server/services/llm-client.ts`
+  - `src/server/services/llm-client.test.ts`
+  - `app/api/curate/recommend-metadata/route.ts` [NEW]
+  - `app/api/curate/recommend-metadata/route.test.ts` [NEW]
+  - `src/features/home/home-page.tsx`
+  - `src/features/home/home-page.test.tsx`
+- **Files or directories that must not change**:
+  - `aidlc-rules/`
+  - `AGENTS.md`
+- **Validation commands**:
+  - `npm.cmd run typecheck`
+  - `npm.cmd test`
+  - `npx.cmd markdownlint-cli2 "aidlc-docs/**/*.md"`
+  - `git diff --check`
+- **Risks or assumptions**:
+  - AI 작명 API는 큐레이션 결과(`tracks`와 `userPrompt`)가 주어졌을 때 비동기로 호출되며, LLM API Key 미설정 혹은 Mock 모드 활성화 시에는 정형화된 감성 제목 후보들 중 분위기에 맞게 휴리스틱으로 추천하여 복원력을 확보한다.
+  - 플레이리스트 저장 완료 후에는 제목/설명 변경 입력 폼이 비활성화되거나 완료 메시지로 가려져야 혼선을 방지할 수 있다.
+- **실행 단계**: Workspace 확인, Requirements Analysis standard, Workflow Planning standard, Application Design 보강, Code Generation, Build and Test
+- **생략 단계 및 사유**: User Stories, Units Generation, NFR Requirements, NFR Design, Infrastructure Design은 신규 작업 분해나 비기능적/인프라적 변경 사항이 없는 단일 마일스톤 기능 추가이므로 생략한다.
